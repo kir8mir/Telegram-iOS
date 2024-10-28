@@ -1079,7 +1079,7 @@ struct OrderedHistoryViewEntries {
             }
         }
         
-        #if DEBUG
+        #if DEBUG && TARGET_OS_IOS
         for entry in self.lowerOrAtAnchor {
             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
         }
@@ -1118,7 +1118,7 @@ struct OrderedHistoryViewEntries {
             }
         }
         
-        #if DEBUG
+        #if DEBUG && TARGET_OS_IOS
         for entry in self.lowerOrAtAnchor {
             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
         }
@@ -1157,7 +1157,7 @@ struct OrderedHistoryViewEntries {
             }
         }
         
-        #if DEBUG
+        #if DEBUG && TARGET_OS_IOS
         for entry in self.lowerOrAtAnchor {
             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
         }
@@ -1183,7 +1183,7 @@ struct OrderedHistoryViewEntries {
             }
         }
         
-        #if DEBUG
+        #if DEBUG && TARGET_OS_IOS
         for entry in self.lowerOrAtAnchor {
             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
         }
@@ -1209,7 +1209,7 @@ struct OrderedHistoryViewEntries {
             }
         }
         
-        #if DEBUG
+        #if DEBUG && TARGET_OS_IOS
         for entry in self.lowerOrAtAnchor {
             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
         }
@@ -1235,7 +1235,7 @@ struct OrderedHistoryViewEntries {
         
         self.lowerOrAtAnchor.remove(at: index)
         
-        #if DEBUG
+        #if DEBUG && TARGET_OS_IOS
         for entry in self.lowerOrAtAnchor {
             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
         }
@@ -1261,7 +1261,7 @@ struct OrderedHistoryViewEntries {
         
         self.higherThanAnchor.remove(at: index)
         
-        #if DEBUG
+        #if DEBUG && TARGET_OS_IOS
         for entry in self.lowerOrAtAnchor {
             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
         }
@@ -1317,7 +1317,7 @@ struct OrderedHistoryViewEntries {
             self.higherThanAnchor.sort(by: { $0.index.id.id < $1.index.id.id })
         }
         
-        #if DEBUG
+        #if DEBUG && TARGET_OS_IOS
         for entry in self.lowerOrAtAnchor {
             assert(self.anchor.isEqualOrGreater(than: entry.index, peerId: self.spacePeerId, namespace: self.spaceNamespace))
         }

@@ -460,6 +460,9 @@ final class ChatSendMessageContextScreenComponent: Component {
                 if sendMessage.isScheduledMessages {
                     canSchedule = false
                 }
+                if sendMessage.hasTimers {
+                    canSchedule = false
+                }
                 canMakePaidContent = sendMessage.canMakePaidContent
                 currentPrice = sendMessage.currentPrice
             case .editMessage:

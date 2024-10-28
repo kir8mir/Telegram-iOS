@@ -1,4 +1,76 @@
 public extension Api {
+    enum InputThemeSettings: TypeConstructorDescription {
+        case inputThemeSettings(flags: Int32, baseTheme: Api.BaseTheme, accentColor: Int32, outboxAccentColor: Int32?, messageColors: [Int32]?, wallpaper: Api.InputWallPaper?, wallpaperSettings: Api.WallPaperSettings?)
+    
+    public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
+    switch self {
+                case .inputThemeSettings(let flags, let baseTheme, let accentColor, let outboxAccentColor, let messageColors, let wallpaper, let wallpaperSettings):
+                    if boxed {
+                        buffer.appendInt32(-1881255857)
+                    }
+                    serializeInt32(flags, buffer: buffer, boxed: false)
+                    baseTheme.serialize(buffer, true)
+                    serializeInt32(accentColor, buffer: buffer, boxed: false)
+                    if Int(flags) & Int(1 << 3) != 0 {serializeInt32(outboxAccentColor!, buffer: buffer, boxed: false)}
+                    if Int(flags) & Int(1 << 0) != 0 {buffer.appendInt32(481674261)
+                    buffer.appendInt32(Int32(messageColors!.count))
+                    for item in messageColors! {
+                        serializeInt32(item, buffer: buffer, boxed: false)
+                    }}
+                    if Int(flags) & Int(1 << 1) != 0 {wallpaper!.serialize(buffer, true)}
+                    if Int(flags) & Int(1 << 1) != 0 {wallpaperSettings!.serialize(buffer, true)}
+                    break
+    }
+    }
+    
+    public func descriptionFields() -> (String, [(String, Any)]) {
+        switch self {
+                case .inputThemeSettings(let flags, let baseTheme, let accentColor, let outboxAccentColor, let messageColors, let wallpaper, let wallpaperSettings):
+                return ("inputThemeSettings", [("flags", flags as Any), ("baseTheme", baseTheme as Any), ("accentColor", accentColor as Any), ("outboxAccentColor", outboxAccentColor as Any), ("messageColors", messageColors as Any), ("wallpaper", wallpaper as Any), ("wallpaperSettings", wallpaperSettings as Any)])
+    }
+    }
+    
+        public static func parse_inputThemeSettings(_ reader: BufferReader) -> InputThemeSettings? {
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: Api.BaseTheme?
+            if let signature = reader.readInt32() {
+                _2 = Api.parse(reader, signature: signature) as? Api.BaseTheme
+            }
+            var _3: Int32?
+            _3 = reader.readInt32()
+            var _4: Int32?
+            if Int(_1!) & Int(1 << 3) != 0 {_4 = reader.readInt32() }
+            var _5: [Int32]?
+            if Int(_1!) & Int(1 << 0) != 0 {if let _ = reader.readInt32() {
+                _5 = Api.parseVector(reader, elementSignature: -1471112230, elementType: Int32.self)
+            } }
+            var _6: Api.InputWallPaper?
+            if Int(_1!) & Int(1 << 1) != 0 {if let signature = reader.readInt32() {
+                _6 = Api.parse(reader, signature: signature) as? Api.InputWallPaper
+            } }
+            var _7: Api.WallPaperSettings?
+            if Int(_1!) & Int(1 << 1) != 0 {if let signature = reader.readInt32() {
+                _7 = Api.parse(reader, signature: signature) as? Api.WallPaperSettings
+            } }
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            let _c3 = _3 != nil
+            let _c4 = (Int(_1!) & Int(1 << 3) == 0) || _4 != nil
+            let _c5 = (Int(_1!) & Int(1 << 0) == 0) || _5 != nil
+            let _c6 = (Int(_1!) & Int(1 << 1) == 0) || _6 != nil
+            let _c7 = (Int(_1!) & Int(1 << 1) == 0) || _7 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 && _c6 && _c7 {
+                return Api.InputThemeSettings.inputThemeSettings(flags: _1!, baseTheme: _2!, accentColor: _3!, outboxAccentColor: _4, messageColors: _5, wallpaper: _6, wallpaperSettings: _7)
+            }
+            else {
+                return nil
+            }
+        }
+    
+    }
+}
+public extension Api {
     indirect enum InputUser: TypeConstructorDescription {
         case inputUser(userId: Int64, accessHash: Int64)
         case inputUserEmpty
@@ -602,6 +674,7 @@ public extension Api {
         case keyboardButton(text: String)
         case keyboardButtonBuy(text: String)
         case keyboardButtonCallback(flags: Int32, text: String, data: Buffer)
+        case keyboardButtonCopy(text: String, copyText: String)
         case keyboardButtonGame(text: String)
         case keyboardButtonRequestGeoLocation(text: String)
         case keyboardButtonRequestPeer(text: String, buttonId: Int32, peerType: Api.RequestPeerType, maxQuantity: Int32)
@@ -662,6 +735,13 @@ public extension Api {
                     serializeInt32(flags, buffer: buffer, boxed: false)
                     serializeString(text, buffer: buffer, boxed: false)
                     serializeBytes(data, buffer: buffer, boxed: false)
+                    break
+                case .keyboardButtonCopy(let text, let copyText):
+                    if boxed {
+                        buffer.appendInt32(1976723854)
+                    }
+                    serializeString(text, buffer: buffer, boxed: false)
+                    serializeString(copyText, buffer: buffer, boxed: false)
                     break
                 case .keyboardButtonGame(let text):
                     if boxed {
@@ -766,6 +846,8 @@ public extension Api {
                 return ("keyboardButtonBuy", [("text", text as Any)])
                 case .keyboardButtonCallback(let flags, let text, let data):
                 return ("keyboardButtonCallback", [("flags", flags as Any), ("text", text as Any), ("data", data as Any)])
+                case .keyboardButtonCopy(let text, let copyText):
+                return ("keyboardButtonCopy", [("text", text as Any), ("copyText", copyText as Any)])
                 case .keyboardButtonGame(let text):
                 return ("keyboardButtonGame", [("text", text as Any)])
                 case .keyboardButtonRequestGeoLocation(let text):
@@ -891,6 +973,20 @@ public extension Api {
             let _c3 = _3 != nil
             if _c1 && _c2 && _c3 {
                 return Api.KeyboardButton.keyboardButtonCallback(flags: _1!, text: _2!, data: _3!)
+            }
+            else {
+                return nil
+            }
+        }
+        public static func parse_keyboardButtonCopy(_ reader: BufferReader) -> KeyboardButton? {
+            var _1: String?
+            _1 = parseString(reader)
+            var _2: String?
+            _2 = parseString(reader)
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            if _c1 && _c2 {
+                return Api.KeyboardButton.keyboardButtonCopy(text: _1!, copyText: _2!)
             }
             else {
                 return nil

@@ -205,7 +205,7 @@ public final class ChatMessageAccessibilityData {
                                         text = item.presentationData.strings.VoiceOver_Chat_MusicTitle(title, performer).string
                                         text.append(item.presentationData.strings.VoiceOver_Chat_Duration(durationString).string)
                                     }
-                                case let .Video(duration, _, flags, _, _):
+                                case let .Video(duration, _, flags, _, _, _):
                                     isSpecialFile = true
                                     if isSelected == nil {
                                         hint = item.presentationData.strings.VoiceOver_Chat_PlayHint
@@ -865,6 +865,8 @@ open class ChatMessageItemView: ListViewItemNode, ChatMessageItemNodeProtocol {
                     item.controllerInteraction.openWebView(button.title, url, simple, .generic)
                 case .requestPeer:
                     break
+                case let .copyText(payload):
+                    item.controllerInteraction.copyText(payload)
             }
         }
     }

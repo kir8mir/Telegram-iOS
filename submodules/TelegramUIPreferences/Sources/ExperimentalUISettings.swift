@@ -54,10 +54,12 @@ public struct ExperimentalUISettings: Codable, Equatable {
     public var storiesJpegExperiment: Bool
     public var crashOnMemoryPressure: Bool
     public var dustEffect: Bool
-    public var callV2: Bool
+    public var disableCallV2: Bool
+    public var experimentalCallMute: Bool
     public var allowWebViewInspection: Bool
     public var disableReloginTokens: Bool
     public var liveStreamV2: Bool
+    public var dynamicStreaming: Bool
     
     public static var defaultSettings: ExperimentalUISettings {
         return ExperimentalUISettings(
@@ -90,10 +92,12 @@ public struct ExperimentalUISettings: Codable, Equatable {
             storiesJpegExperiment: false,
             crashOnMemoryPressure: false,
             dustEffect: false,
-            callV2: false,
+            disableCallV2: false,
+            experimentalCallMute: false,
             allowWebViewInspection: false,
             disableReloginTokens: false,
-            liveStreamV2: false
+            liveStreamV2: false,
+            dynamicStreaming: false
         )
     }
     
@@ -127,10 +131,12 @@ public struct ExperimentalUISettings: Codable, Equatable {
         storiesJpegExperiment: Bool,
         crashOnMemoryPressure: Bool,
         dustEffect: Bool,
-        callV2: Bool,
+        disableCallV2: Bool,
+        experimentalCallMute: Bool,
         allowWebViewInspection: Bool,
         disableReloginTokens: Bool,
-        liveStreamV2: Bool
+        liveStreamV2: Bool,
+        dynamicStreaming: Bool
     ) {
         self.keepChatNavigationStack = keepChatNavigationStack
         self.skipReadHistory = skipReadHistory
@@ -161,10 +167,12 @@ public struct ExperimentalUISettings: Codable, Equatable {
         self.storiesJpegExperiment = storiesJpegExperiment
         self.crashOnMemoryPressure = crashOnMemoryPressure
         self.dustEffect = dustEffect
-        self.callV2 = callV2
+        self.disableCallV2 = disableCallV2
+        self.experimentalCallMute = experimentalCallMute
         self.allowWebViewInspection = allowWebViewInspection
         self.disableReloginTokens = disableReloginTokens
         self.liveStreamV2 = liveStreamV2
+        self.dynamicStreaming = dynamicStreaming
     }
     
     public init(from decoder: Decoder) throws {
@@ -199,10 +207,12 @@ public struct ExperimentalUISettings: Codable, Equatable {
         self.storiesJpegExperiment = try container.decodeIfPresent(Bool.self, forKey: "storiesJpegExperiment") ?? false
         self.crashOnMemoryPressure = try container.decodeIfPresent(Bool.self, forKey: "crashOnMemoryPressure") ?? false
         self.dustEffect = try container.decodeIfPresent(Bool.self, forKey: "dustEffect") ?? false
-        self.callV2 = try container.decodeIfPresent(Bool.self, forKey: "callV2") ?? false
+        self.disableCallV2 = try container.decodeIfPresent(Bool.self, forKey: "disableCallV2") ?? false
+        self.experimentalCallMute = try container.decodeIfPresent(Bool.self, forKey: "experimentalCallMute") ?? false
         self.allowWebViewInspection = try container.decodeIfPresent(Bool.self, forKey: "allowWebViewInspection") ?? false
         self.disableReloginTokens = try container.decodeIfPresent(Bool.self, forKey: "disableReloginTokens") ?? false
         self.liveStreamV2 = try container.decodeIfPresent(Bool.self, forKey: "liveStreamV2") ?? false
+        self.dynamicStreaming = try container.decodeIfPresent(Bool.self, forKey: "dynamicStreaming") ?? false
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -237,10 +247,12 @@ public struct ExperimentalUISettings: Codable, Equatable {
         try container.encode(self.storiesJpegExperiment, forKey: "storiesJpegExperiment")
         try container.encode(self.crashOnMemoryPressure, forKey: "crashOnMemoryPressure")
         try container.encode(self.dustEffect, forKey: "dustEffect")
-        try container.encode(self.callV2, forKey: "callV2")
+        try container.encode(self.disableCallV2, forKey: "disableCallV2")
+        try container.encode(self.experimentalCallMute, forKey: "experimentalCallMute")
         try container.encode(self.allowWebViewInspection, forKey: "allowWebViewInspection")
         try container.encode(self.disableReloginTokens, forKey: "disableReloginTokens")
         try container.encode(self.liveStreamV2, forKey: "liveStreamV2")
+        try container.encode(self.dynamicStreaming, forKey: "dynamicStreaming")
     }
 }
 

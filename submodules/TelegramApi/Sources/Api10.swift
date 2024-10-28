@@ -1,12 +1,20 @@
 public extension Api {
     indirect enum InputInvoice: TypeConstructorDescription {
+        case inputInvoiceChatInviteSubscription(hash: String)
         case inputInvoiceMessage(peer: Api.InputPeer, msgId: Int32)
         case inputInvoicePremiumGiftCode(purpose: Api.InputStorePaymentPurpose, option: Api.PremiumGiftCodeOption)
         case inputInvoiceSlug(slug: String)
+        case inputInvoiceStarGift(flags: Int32, userId: Api.InputUser, giftId: Int64, message: Api.TextWithEntities?)
         case inputInvoiceStars(purpose: Api.InputStorePaymentPurpose)
     
     public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
     switch self {
+                case .inputInvoiceChatInviteSubscription(let hash):
+                    if boxed {
+                        buffer.appendInt32(887591921)
+                    }
+                    serializeString(hash, buffer: buffer, boxed: false)
+                    break
                 case .inputInvoiceMessage(let peer, let msgId):
                     if boxed {
                         buffer.appendInt32(-977967015)
@@ -27,6 +35,15 @@ public extension Api {
                     }
                     serializeString(slug, buffer: buffer, boxed: false)
                     break
+                case .inputInvoiceStarGift(let flags, let userId, let giftId, let message):
+                    if boxed {
+                        buffer.appendInt32(634962392)
+                    }
+                    serializeInt32(flags, buffer: buffer, boxed: false)
+                    userId.serialize(buffer, true)
+                    serializeInt64(giftId, buffer: buffer, boxed: false)
+                    if Int(flags) & Int(1 << 1) != 0 {message!.serialize(buffer, true)}
+                    break
                 case .inputInvoiceStars(let purpose):
                     if boxed {
                         buffer.appendInt32(1710230755)
@@ -38,17 +55,32 @@ public extension Api {
     
     public func descriptionFields() -> (String, [(String, Any)]) {
         switch self {
+                case .inputInvoiceChatInviteSubscription(let hash):
+                return ("inputInvoiceChatInviteSubscription", [("hash", hash as Any)])
                 case .inputInvoiceMessage(let peer, let msgId):
                 return ("inputInvoiceMessage", [("peer", peer as Any), ("msgId", msgId as Any)])
                 case .inputInvoicePremiumGiftCode(let purpose, let option):
                 return ("inputInvoicePremiumGiftCode", [("purpose", purpose as Any), ("option", option as Any)])
                 case .inputInvoiceSlug(let slug):
                 return ("inputInvoiceSlug", [("slug", slug as Any)])
+                case .inputInvoiceStarGift(let flags, let userId, let giftId, let message):
+                return ("inputInvoiceStarGift", [("flags", flags as Any), ("userId", userId as Any), ("giftId", giftId as Any), ("message", message as Any)])
                 case .inputInvoiceStars(let purpose):
                 return ("inputInvoiceStars", [("purpose", purpose as Any)])
     }
     }
     
+        public static func parse_inputInvoiceChatInviteSubscription(_ reader: BufferReader) -> InputInvoice? {
+            var _1: String?
+            _1 = parseString(reader)
+            let _c1 = _1 != nil
+            if _c1 {
+                return Api.InputInvoice.inputInvoiceChatInviteSubscription(hash: _1!)
+            }
+            else {
+                return nil
+            }
+        }
         public static func parse_inputInvoiceMessage(_ reader: BufferReader) -> InputInvoice? {
             var _1: Api.InputPeer?
             if let signature = reader.readInt32() {
@@ -94,6 +126,30 @@ public extension Api {
                 return nil
             }
         }
+        public static func parse_inputInvoiceStarGift(_ reader: BufferReader) -> InputInvoice? {
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: Api.InputUser?
+            if let signature = reader.readInt32() {
+                _2 = Api.parse(reader, signature: signature) as? Api.InputUser
+            }
+            var _3: Int64?
+            _3 = reader.readInt64()
+            var _4: Api.TextWithEntities?
+            if Int(_1!) & Int(1 << 1) != 0 {if let signature = reader.readInt32() {
+                _4 = Api.parse(reader, signature: signature) as? Api.TextWithEntities
+            } }
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            let _c3 = _3 != nil
+            let _c4 = (Int(_1!) & Int(1 << 1) == 0) || _4 != nil
+            if _c1 && _c2 && _c3 && _c4 {
+                return Api.InputInvoice.inputInvoiceStarGift(flags: _1!, userId: _2!, giftId: _3!, message: _4)
+            }
+            else {
+                return nil
+            }
+        }
         public static func parse_inputInvoiceStars(_ reader: BufferReader) -> InputInvoice? {
             var _1: Api.InputStorePaymentPurpose?
             if let signature = reader.readInt32() {
@@ -121,7 +177,7 @@ public extension Api {
         case inputMediaGeoLive(flags: Int32, geoPoint: Api.InputGeoPoint, heading: Int32?, period: Int32?, proximityNotificationRadius: Int32?)
         case inputMediaGeoPoint(geoPoint: Api.InputGeoPoint)
         case inputMediaInvoice(flags: Int32, title: String, description: String, photo: Api.InputWebDocument?, invoice: Api.Invoice, payload: Buffer, provider: String?, providerData: Api.DataJSON, startParam: String?, extendedMedia: Api.InputMedia?)
-        case inputMediaPaidMedia(starsAmount: Int64, extendedMedia: [Api.InputMedia])
+        case inputMediaPaidMedia(flags: Int32, starsAmount: Int64, extendedMedia: [Api.InputMedia], payload: String?)
         case inputMediaPhoto(flags: Int32, id: Api.InputPhoto, ttlSeconds: Int32?)
         case inputMediaPhotoExternal(flags: Int32, url: String, ttlSeconds: Int32?)
         case inputMediaPoll(flags: Int32, poll: Api.Poll, correctAnswers: [Buffer]?, solution: String?, solutionEntities: [Api.MessageEntity]?)
@@ -208,16 +264,18 @@ public extension Api {
                     if Int(flags) & Int(1 << 1) != 0 {serializeString(startParam!, buffer: buffer, boxed: false)}
                     if Int(flags) & Int(1 << 2) != 0 {extendedMedia!.serialize(buffer, true)}
                     break
-                case .inputMediaPaidMedia(let starsAmount, let extendedMedia):
+                case .inputMediaPaidMedia(let flags, let starsAmount, let extendedMedia, let payload):
                     if boxed {
-                        buffer.appendInt32(-1436147773)
+                        buffer.appendInt32(-1005571194)
                     }
+                    serializeInt32(flags, buffer: buffer, boxed: false)
                     serializeInt64(starsAmount, buffer: buffer, boxed: false)
                     buffer.appendInt32(481674261)
                     buffer.appendInt32(Int32(extendedMedia.count))
                     for item in extendedMedia {
                         item.serialize(buffer, true)
                     }
+                    if Int(flags) & Int(1 << 0) != 0 {serializeString(payload!, buffer: buffer, boxed: false)}
                     break
                 case .inputMediaPhoto(let flags, let id, let ttlSeconds):
                     if boxed {
@@ -334,8 +392,8 @@ public extension Api {
                 return ("inputMediaGeoPoint", [("geoPoint", geoPoint as Any)])
                 case .inputMediaInvoice(let flags, let title, let description, let photo, let invoice, let payload, let provider, let providerData, let startParam, let extendedMedia):
                 return ("inputMediaInvoice", [("flags", flags as Any), ("title", title as Any), ("description", description as Any), ("photo", photo as Any), ("invoice", invoice as Any), ("payload", payload as Any), ("provider", provider as Any), ("providerData", providerData as Any), ("startParam", startParam as Any), ("extendedMedia", extendedMedia as Any)])
-                case .inputMediaPaidMedia(let starsAmount, let extendedMedia):
-                return ("inputMediaPaidMedia", [("starsAmount", starsAmount as Any), ("extendedMedia", extendedMedia as Any)])
+                case .inputMediaPaidMedia(let flags, let starsAmount, let extendedMedia, let payload):
+                return ("inputMediaPaidMedia", [("flags", flags as Any), ("starsAmount", starsAmount as Any), ("extendedMedia", extendedMedia as Any), ("payload", payload as Any)])
                 case .inputMediaPhoto(let flags, let id, let ttlSeconds):
                 return ("inputMediaPhoto", [("flags", flags as Any), ("id", id as Any), ("ttlSeconds", ttlSeconds as Any)])
                 case .inputMediaPhotoExternal(let flags, let url, let ttlSeconds):
@@ -526,16 +584,22 @@ public extension Api {
             }
         }
         public static func parse_inputMediaPaidMedia(_ reader: BufferReader) -> InputMedia? {
-            var _1: Int64?
-            _1 = reader.readInt64()
-            var _2: [Api.InputMedia]?
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: Int64?
+            _2 = reader.readInt64()
+            var _3: [Api.InputMedia]?
             if let _ = reader.readInt32() {
-                _2 = Api.parseVector(reader, elementSignature: 0, elementType: Api.InputMedia.self)
+                _3 = Api.parseVector(reader, elementSignature: 0, elementType: Api.InputMedia.self)
             }
+            var _4: String?
+            if Int(_1!) & Int(1 << 0) != 0 {_4 = parseString(reader) }
             let _c1 = _1 != nil
             let _c2 = _2 != nil
-            if _c1 && _c2 {
-                return Api.InputMedia.inputMediaPaidMedia(starsAmount: _1!, extendedMedia: _2!)
+            let _c3 = _3 != nil
+            let _c4 = (Int(_1!) & Int(1 << 0) == 0) || _4 != nil
+            if _c1 && _c2 && _c3 && _c4 {
+                return Api.InputMedia.inputMediaPaidMedia(flags: _1!, starsAmount: _2!, extendedMedia: _3!, payload: _4)
             }
             else {
                 return nil
@@ -916,116 +980,6 @@ public extension Api {
         }
         public static func parse_inputNotifyUsers(_ reader: BufferReader) -> InputNotifyPeer? {
             return Api.InputNotifyPeer.inputNotifyUsers
-        }
-    
-    }
-}
-public extension Api {
-    enum InputPaymentCredentials: TypeConstructorDescription {
-        case inputPaymentCredentials(flags: Int32, data: Api.DataJSON)
-        case inputPaymentCredentialsApplePay(paymentData: Api.DataJSON)
-        case inputPaymentCredentialsGooglePay(paymentToken: Api.DataJSON)
-        case inputPaymentCredentialsSaved(id: String, tmpPassword: Buffer)
-    
-    public func serialize(_ buffer: Buffer, _ boxed: Swift.Bool) {
-    switch self {
-                case .inputPaymentCredentials(let flags, let data):
-                    if boxed {
-                        buffer.appendInt32(873977640)
-                    }
-                    serializeInt32(flags, buffer: buffer, boxed: false)
-                    data.serialize(buffer, true)
-                    break
-                case .inputPaymentCredentialsApplePay(let paymentData):
-                    if boxed {
-                        buffer.appendInt32(178373535)
-                    }
-                    paymentData.serialize(buffer, true)
-                    break
-                case .inputPaymentCredentialsGooglePay(let paymentToken):
-                    if boxed {
-                        buffer.appendInt32(-1966921727)
-                    }
-                    paymentToken.serialize(buffer, true)
-                    break
-                case .inputPaymentCredentialsSaved(let id, let tmpPassword):
-                    if boxed {
-                        buffer.appendInt32(-1056001329)
-                    }
-                    serializeString(id, buffer: buffer, boxed: false)
-                    serializeBytes(tmpPassword, buffer: buffer, boxed: false)
-                    break
-    }
-    }
-    
-    public func descriptionFields() -> (String, [(String, Any)]) {
-        switch self {
-                case .inputPaymentCredentials(let flags, let data):
-                return ("inputPaymentCredentials", [("flags", flags as Any), ("data", data as Any)])
-                case .inputPaymentCredentialsApplePay(let paymentData):
-                return ("inputPaymentCredentialsApplePay", [("paymentData", paymentData as Any)])
-                case .inputPaymentCredentialsGooglePay(let paymentToken):
-                return ("inputPaymentCredentialsGooglePay", [("paymentToken", paymentToken as Any)])
-                case .inputPaymentCredentialsSaved(let id, let tmpPassword):
-                return ("inputPaymentCredentialsSaved", [("id", id as Any), ("tmpPassword", tmpPassword as Any)])
-    }
-    }
-    
-        public static func parse_inputPaymentCredentials(_ reader: BufferReader) -> InputPaymentCredentials? {
-            var _1: Int32?
-            _1 = reader.readInt32()
-            var _2: Api.DataJSON?
-            if let signature = reader.readInt32() {
-                _2 = Api.parse(reader, signature: signature) as? Api.DataJSON
-            }
-            let _c1 = _1 != nil
-            let _c2 = _2 != nil
-            if _c1 && _c2 {
-                return Api.InputPaymentCredentials.inputPaymentCredentials(flags: _1!, data: _2!)
-            }
-            else {
-                return nil
-            }
-        }
-        public static func parse_inputPaymentCredentialsApplePay(_ reader: BufferReader) -> InputPaymentCredentials? {
-            var _1: Api.DataJSON?
-            if let signature = reader.readInt32() {
-                _1 = Api.parse(reader, signature: signature) as? Api.DataJSON
-            }
-            let _c1 = _1 != nil
-            if _c1 {
-                return Api.InputPaymentCredentials.inputPaymentCredentialsApplePay(paymentData: _1!)
-            }
-            else {
-                return nil
-            }
-        }
-        public static func parse_inputPaymentCredentialsGooglePay(_ reader: BufferReader) -> InputPaymentCredentials? {
-            var _1: Api.DataJSON?
-            if let signature = reader.readInt32() {
-                _1 = Api.parse(reader, signature: signature) as? Api.DataJSON
-            }
-            let _c1 = _1 != nil
-            if _c1 {
-                return Api.InputPaymentCredentials.inputPaymentCredentialsGooglePay(paymentToken: _1!)
-            }
-            else {
-                return nil
-            }
-        }
-        public static func parse_inputPaymentCredentialsSaved(_ reader: BufferReader) -> InputPaymentCredentials? {
-            var _1: String?
-            _1 = parseString(reader)
-            var _2: Buffer?
-            _2 = parseBytes(reader)
-            let _c1 = _1 != nil
-            let _c2 = _2 != nil
-            if _c1 && _c2 {
-                return Api.InputPaymentCredentials.inputPaymentCredentialsSaved(id: _1!, tmpPassword: _2!)
-            }
-            else {
-                return nil
-            }
         }
     
     }

@@ -87,34 +87,35 @@ func chatHistoryEntriesForView(
     if (associatedData.subject?.isService ?? false) {
         
     } else {
-        if case let .peer(peerId) = location, case let cachedData = cachedData as? CachedChannelData, let invitedOn = cachedData?.invitedOn {
-            joinMessage = Message(
-                stableId: UInt32.max - 1000,
-                stableVersion: 0,
-                id: MessageId(peerId: peerId, namespace: Namespaces.Message.Local, id: 0),
-                globallyUniqueId: nil,
-                groupingKey: nil,
-                groupInfo: nil,
-                threadId: nil,
-                timestamp: invitedOn,
-                flags: [.Incoming],
-                tags: [],
-                globalTags: [],
-                localTags: [],
-                customTags: [],
-                forwardInfo: nil,
-                author: channelPeer,
-                text: "",
-                attributes: [],
-                media: [TelegramMediaAction(action: .joinedByRequest)],
-                peers: SimpleDictionary<PeerId, Peer>(),
-                associatedMessages: SimpleDictionary<MessageId, Message>(),
-                associatedMessageIds: [],
-                associatedMedia: [:],
-                associatedThreadInfo: nil,
-                associatedStories: [:]
-            )
-        } else if let peer = channelPeer as? TelegramChannel, case .broadcast = peer.info, case .member = peer.participationStatus, !peer.flags.contains(.isCreator) {
+//        if case let .peer(peerId) = location, case let cachedData = cachedData as? CachedChannelData, let invitedOn = cachedData?.invitedOn {
+//            joinMessage = Message(
+//                stableId: UInt32.max - 1000,
+//                stableVersion: 0,
+//                id: MessageId(peerId: peerId, namespace: Namespaces.Message.Local, id: 0),
+//                globallyUniqueId: nil,
+//                groupingKey: nil,
+//                groupInfo: nil,
+//                threadId: nil,
+//                timestamp: invitedOn,
+//                flags: [.Incoming],
+//                tags: [],
+//                globalTags: [],
+//                localTags: [],
+//                customTags: [],
+//                forwardInfo: nil,
+//                author: channelPeer,
+//                text: "",
+//                attributes: [],
+//                media: [TelegramMediaAction(action: .joinedByRequest)],
+//                peers: SimpleDictionary<PeerId, Peer>(),
+//                associatedMessages: SimpleDictionary<MessageId, Message>(),
+//                associatedMessageIds: [],
+//                associatedMedia: [:],
+//                associatedThreadInfo: nil,
+//                associatedStories: [:]
+//            )
+//        } else 
+        if let peer = channelPeer as? TelegramChannel, case .broadcast = peer.info, case .member = peer.participationStatus, !peer.flags.contains(.isCreator) {
             joinMessage = Message(
                 stableId: UInt32.max - 1000,
                 stableVersion: 0,
@@ -445,6 +446,8 @@ func chatHistoryEntriesForView(
             }
             if case let .peer(peerId) = location, peerId.isReplies {
                 entries.insert(.ChatInfoEntry("", presentationData.strings.RepliesChat_DescriptionText, nil, nil, presentationData), at: 0)
+            } else if case let .peer(peerId) = location, peerId.isVerificationCodes {
+                entries.insert(.ChatInfoEntry("", presentationData.strings.VerificationCodes_DescriptionText, nil, nil, presentationData), at: 0)
             } else if let cachedPeerData = cachedPeerData as? CachedUserData, let botInfo = cachedPeerData.botInfo, !botInfo.description.isEmpty {
                 entries.insert(.ChatInfoEntry(presentationData.strings.Bot_DescriptionTitle, botInfo.description, botInfo.photo, botInfo.video, presentationData), at: 0)
             } else {

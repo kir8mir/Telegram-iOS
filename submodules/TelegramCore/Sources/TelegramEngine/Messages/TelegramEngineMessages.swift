@@ -331,7 +331,23 @@ public extension TelegramEngine {
                 isLarge: false,
                 storeAsRecentlyUsed: false,
                 add: true
-            ).start()
+            ).startStandalone()
+        }
+        
+        public func sendStarsReaction(id: EngineMessage.Id, count: Int, isAnonymous: Bool?) -> Signal<Bool, NoError> {
+            return _internal_sendStarsReactionsInteractively(account: self.account, messageId: id, count: count, isAnonymous: isAnonymous)
+        }
+        
+        public func cancelPendingSendStarsReaction(id: EngineMessage.Id) {
+            let _ = cancelPendingSendStarsReactionInteractively(account: self.account, messageId: id).startStandalone()
+        }
+        
+        public func forceSendPendingSendStarsReaction(id: EngineMessage.Id) {
+            let _ = _internal_forceSendPendingSendStarsReaction(account: self.account, messageId: id).startStandalone()
+        }
+        
+        public func updateStarsReactionIsAnonymous(id: EngineMessage.Id, isAnonymous: Bool) -> Signal<Never, NoError> {
+            return _internal_updateStarsReactionIsAnonymous(account: self.account, messageId: id, isAnonymous: isAnonymous)
         }
 
         public func requestChatContextResults(botId: PeerId, peerId: PeerId, query: String, location: Signal<(Double, Double)?, NoError> = .single(nil), offset: String, incompleteResults: Bool = false, staleCachedResults: Bool = false) -> Signal<RequestChatContextResultsResult?, RequestChatContextResultsError> {
@@ -1219,8 +1235,8 @@ public extension TelegramEngine {
                         }
                         
                         var selectedMedia: EngineMedia
-                        if let alternativeMedia = itemAndPeer.item.alternativeMedia.flatMap(EngineMedia.init), (!preferHighQuality && !itemAndPeer.item.isMy) {
-                            selectedMedia = alternativeMedia
+                        if let alternativeMediaValue = itemAndPeer.item.alternativeMediaList.first.flatMap(EngineMedia.init), (!preferHighQuality && !itemAndPeer.item.isMy) {
+                            selectedMedia = alternativeMediaValue
                         } else {
                             selectedMedia = EngineMedia(media)
                         }
@@ -1261,7 +1277,7 @@ public extension TelegramEngine {
                                     timestamp: item.timestamp,
                                     expirationTimestamp: item.expirationTimestamp,
                                     media: item.media,
-                                    alternativeMedia: item.alternativeMedia,
+                                    alternativeMediaList: item.alternativeMediaList,
                                     mediaAreas: item.mediaAreas,
                                     text: item.text,
                                     entities: item.entities,
@@ -1447,8 +1463,16 @@ public extension TelegramEngine {
             return _internal_reportAdMessage(account: self.account, peerId: peerId, opaqueId: opaqueId, option: option)
         }
         
+        public func reportContent(subject: ReportContentSubject, option: Data?, message: String?) -> Signal<ReportContentResult, ReportContentError> {
+            return _internal_reportContent(account: self.account, subject: subject, option: option, message: message)
+        }
+        
         public func updateExtendedMedia(messageIds: [EngineMessage.Id]) -> Signal<Never, NoError> {
             return _internal_updateExtendedMedia(account: self.account, messageIds: messageIds)
+        }
+        
+        public func markAdAction(peerId: EnginePeer.Id, opaqueId: Data, media: Bool, fullscreen: Bool) {
+            _internal_markAdAction(account: self.account, peerId: peerId, opaqueId: opaqueId, media: media, fullscreen: fullscreen)
         }
         
         public func getAllLocalChannels(count: Int) -> Signal<[EnginePeer.Id], NoError> {

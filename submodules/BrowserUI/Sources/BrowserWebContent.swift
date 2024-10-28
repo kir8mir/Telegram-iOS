@@ -9,7 +9,7 @@ import TelegramPresentationData
 import TelegramUIPreferences
 import PresentationDataUtils
 import AccountContext
-import WebKit
+@preconcurrency import WebKit
 import AppBundle
 import PromptUI
 import SafariServices
@@ -21,6 +21,7 @@ import UrlEscaping
 import UrlHandling
 import SaveProgressScreen
 import DeviceModel
+import LegacyMediaPickerUI
 
 private final class TonSchemeHandler: NSObject, WKURLSchemeHandler {
     private final class PendingTask {
@@ -121,7 +122,9 @@ private final class TonSchemeHandler: NSObject, WKURLSchemeHandler {
 final class WebView: WKWebView {
     var customBottomInset: CGFloat = 0.0 {
         didSet {
-            self.setNeedsLayout()
+            if self.customBottomInset != oldValue {
+                self.setNeedsLayout()
+            }
         }
     }
     
@@ -168,11 +171,12 @@ private func computedUserAgent() -> String {
     return DeviceModel.current.isIpad ? "Version/\(osVersion) Safari/605.1.15" : "Version/\(osVersion) Mobile/\(firmwareVersion) Safari/604.1"
 }
 
-final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKUIDelegate, UIScrollViewDelegate {
+final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKUIDelegate, UIScrollViewDelegate, WKDownloadDelegate {
     private let context: AccountContext
     private var presentationData: PresentationData
     
     let webView: WebView
+    var readability: Readability?
     
     private let errorView: ComponentHostView<Empty>
     private var currentError: Error?
@@ -191,7 +195,7 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
     
     private let faviconDisposable = MetaDisposable()
     
-    var pushContent: (BrowserScreen.Subject) -> Void = { _ in }
+    var pushContent: (BrowserScreen.Subject, BrowserContent?) -> Void = { _, _ in }
     var openAppUrl: (String) -> Void = { _ in }
     var onScrollingUpdate: (ContentScrollingUpdate) -> Void = { _ in }
     var minimize: () -> Void = { }
@@ -238,7 +242,7 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
             contentController.add(WeakScriptMessageHandler { message in
                 handleScriptMessageImpl?(message)
             }, name: "performAction")
-
+            
             configuration.userContentController = contentController
             configuration.applicationNameForUserAgent = computedUserAgent()
         }
@@ -275,12 +279,12 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
         
         self.backgroundColor = presentationData.theme.list.plainBackgroundColor
         self.webView.backgroundColor = presentationData.theme.list.plainBackgroundColor
-        self.webView.isOpaque = false
+        self.webView.alpha = 0.0
         
         self.webView.allowsBackForwardNavigationGestures = true
         self.webView.scrollView.delegate = self
         self.webView.scrollView.clipsToBounds = false
-//        self.webView.translatesAutoresizingMaskIntoConstraints = false
+
         self.webView.navigationDelegate = self
         self.webView.uiDelegate = self
         self.webView.addObserver(self, forKeyPath: #keyPath(WKWebView.title), options: [], context: nil)
@@ -334,6 +338,7 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
         self.webView.removeObserver(self, forKeyPath: #keyPath(WKWebView.hasOnlySecureContent))
         
         self.faviconDisposable.dispose()
+        self.instantPageDisposable.dispose()
     }
     
     private func handleScriptMessage(_ message: WKScriptMessage) {
@@ -363,7 +368,6 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
         }
     }
         
-    
     var currentFontState = BrowserPresentationState.FontState(size: 100, isSerif: false)
     func updateFontState(_ state: BrowserPresentationState.FontState) {
         self.updateFontState(state, force: false)
@@ -378,13 +382,36 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
         self.webView.evaluateJavaScript(js) { _, _ in }
     }
     
+    func toggleInstantView(_ enabled: Bool) {
+        if enabled {
+            if let instantPage = self.instantPage {
+                self.pushContent(.instantPage(webPage: instantPage, anchor: nil, sourceLocation: InstantPageSourceLocation(userLocation: .other, peerType: .channel), preloadedResources: self.instantPageResources), self)
+            } else if let readability = self.readability {
+                readability.webView.frame = self.webView.frame
+                self.addSubview(readability.webView)
+                
+                var collapsedFrame = readability.webView.frame
+                collapsedFrame.size.height = 0.0
+                readability.webView.clipsToBounds = true
+                readability.webView.layer.animateFrame(from: collapsedFrame, to: readability.webView.frame, duration: 0.3)
+            }
+        } else if let readability = self.readability {
+            var collapsedFrame = readability.webView.frame
+            collapsedFrame.size.height = 0.0
+            readability.webView.layer.animateFrame(from: readability.webView.frame, to: collapsedFrame, duration: 0.3, removeOnCompletion: false, completion: { _ in
+                readability.webView.removeFromSuperview()
+                readability.webView.layer.removeAllAnimations()
+            })
+        }
+    }
+    
     private var didSetupSearch = false
     private func setupSearch(completion: @escaping () -> Void) {
         guard !self.didSetupSearch else {
             completion()
             return
         }
-        
+                
         let bundle = getAppBundle()
         guard let scriptPath = bundle.path(forResource: "UIWebViewSearch", ofType: "js") else {
             return
@@ -461,6 +488,7 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
                     
                     self?.currentSearchResult = 0
                     self?.searchResultsCount = 0
+                    completion?(0)
                 }
             }
         }
@@ -615,6 +643,10 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
             }
             self.didSetupSearch = false
         }  else if keyPath == "estimatedProgress" {
+            if self.webView.estimatedProgress >= 0.1 && self.webView.alpha.isZero {
+                self.webView.alpha = 1.0
+                self.webView.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
+            }
             self.updateState { $0.withUpdatedEstimatedProgress(self.webView.estimatedProgress) }
         } else if keyPath == "canGoBack" {
             self.updateState { $0.withUpdatedCanGoBack(self.webView.canGoBack) }
@@ -702,48 +734,54 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
     
     @available(iOS 13.0, *)
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, preferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
-//        if #available(iOS 14.5, *), navigationAction.shouldPerformDownload {
-//            self.presentDownloadConfirmation(fileName: navigationAction.request.mainDocumentURL?.lastPathComponent ?? "file", proceed: { download in
-//                if download {
-//                    decisionHandler(.download, preferences)
-//                } else {
-////                    decisionHandler(.cancel, preferences)
-//                }
-//            })
-//        } else {
+        if #available(iOS 14.5, *), navigationAction.shouldPerformDownload {
+            self.presentDownloadConfirmation(fileName: navigationAction.request.mainDocumentURL?.lastPathComponent ?? "file", proceed: { download in
+                if download {
+                    decisionHandler(.download, preferences)
+                } else {
+                    decisionHandler(.cancel, preferences)
+                }
+            })
+        } else {
             if let url = navigationAction.request.url?.absoluteString {
-                if (navigationAction.targetFrame == nil || navigationAction.targetFrame?.isMainFrame == true) && (isTelegramMeLink(url) || isTelegraPhLink(url)) && !url.contains("/auth/push?") && !self._state.url.contains("/auth/push?") {
+                if (navigationAction.targetFrame == nil || navigationAction.targetFrame?.isMainFrame == true) && (isTelegramMeLink(url) || isTelegraPhLink(url) || url.hasPrefix("tg://")) && !url.contains("/auth/push?") && !self._state.url.contains("/auth/push?") {
                     decisionHandler(.cancel, preferences)
                     self.minimize()
                     self.openAppUrl(url)
                 } else {
-                    decisionHandler(.allow, preferences)
+                    if let scheme = navigationAction.request.url?.scheme, !["http", "https", "tonsite", "about"].contains(scheme.lowercased()) {
+                        decisionHandler(.cancel, preferences)
+                        self.context.sharedContext.openExternalUrl(context: self.context, urlContext: .generic, url: url, forceExternal: true, presentationData: self.presentationData, navigationController: nil, dismissInput: {})
+                    } else {
+                        decisionHandler(.allow, preferences)
+                    }
                 }
             } else {
                 decisionHandler(.allow, preferences)
             }
-//        }
+        }
     }
     
-//    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
-//        if navigationResponse.canShowMIMEType {
-//            decisionHandler(.allow)
-//        } else if #available(iOS 14.5, *) {
-//            self.presentDownloadConfirmation(fileName: navigationResponse.response.suggestedFilename ?? "file", proceed: { download in
-//                if download {
-//                    decisionHandler(.download)
-//                } else {
-//                    decisionHandler(.cancel)
-//                }
-//            })
-//        } else {
-//            decisionHandler(.cancel)
-//        }
-//    }
+    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+        if navigationResponse.canShowMIMEType {
+            decisionHandler(.allow)
+        } else if #available(iOS 14.5, *) {
+//            decisionHandler(.download)
+            self.presentDownloadConfirmation(fileName: navigationResponse.response.suggestedFilename ?? "file", proceed: { download in
+                if download {
+                    decisionHandler(.download)
+                } else {
+                    decisionHandler(.cancel)
+                }
+            })
+        } else {
+            decisionHandler(.cancel)
+        }
+    }
     
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         if let url = navigationAction.request.url?.absoluteString {
-            if (navigationAction.targetFrame == nil || navigationAction.targetFrame?.isMainFrame == true) && (isTelegramMeLink(url) || isTelegraPhLink(url)) {
+            if (navigationAction.targetFrame == nil || navigationAction.targetFrame?.isMainFrame == true) && (isTelegramMeLink(url) || isTelegraPhLink(url) || url.hasPrefix("tg://")) {
                 decisionHandler(.cancel)
                 self.minimize()
                 self.openAppUrl(url)
@@ -754,6 +792,106 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
             decisionHandler(.allow)
         }
     }
+
+    private var downloadArguments: (String, String)?
+    private var downloadController: (AlertController, (Int64, Int64) -> Void)?
+    private var downloadProgressObserver: Any?
+    
+    @available(iOS 14.5, *)
+    func webView(_ webView: WKWebView, navigationAction: WKNavigationAction, didBecome download: WKDownload) {
+        download.delegate = self
+    }
+    
+    @available(iOS 14.5, *)
+    func webView(_ webView: WKWebView, navigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
+        download.delegate = self
+    }
+        
+    @available(iOS 14.5, *)
+    func download(_ download: WKDownload, decideDestinationUsing response: URLResponse, suggestedFilename: String, completionHandler: @escaping (URL?) -> Void) {
+        let path = NSTemporaryDirectory() + NSUUID().uuidString
+        self.downloadArguments = (path, suggestedFilename)
+        completionHandler(URL(fileURLWithPath: path))
+        
+        let downloadController = progressAlertController(sharedContext: self.context.sharedContext, title: "", cancel: { [weak download] in
+            download?.cancel()
+        })
+        self.downloadController = downloadController
+        self.present(downloadController.0, nil)
+        downloadController.1(download.progress.completedUnitCount, download.progress.totalUnitCount)
+        
+        self.downloadProgressObserver = download.progress.observe(\.fractionCompleted) { [weak self] progress, _ in
+            if let (_, update) = self?.downloadController {
+                update(progress.completedUnitCount, progress.totalUnitCount)
+            }
+        }
+    }
+    
+    @available(iOS 14.5, *)
+    func downloadDidFinish(_ download: WKDownload) {
+        if let (controller, _ ) = self.downloadController {
+            controller.dismissAnimated()
+            self.downloadController = nil
+        }
+        
+        if let (path, fileName) = self.downloadArguments {
+            let tempFile = TempBox.shared.file(path: path, fileName: fileName)
+            let url = URL(fileURLWithPath: tempFile.path)
+            
+            let controller = legacyICloudFilePicker(theme: self.presentationData.theme, mode: .export, url: url, documentTypes: [], forceDarkTheme: false, dismissed: {}, completion: { _ in
+                
+            })
+            self.present(controller, nil)
+            
+            self.downloadArguments = nil
+            self.downloadProgressObserver = nil
+        }
+    }
+    
+    @available(iOS 14.5, *)
+    func download(_ download: WKDownload, didFailWithError error: Error, resumeData: Data?) {
+        self.downloadArguments = nil
+        self.downloadProgressObserver = nil
+    }
+        
+    func webView(_ webView: WKWebView, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        if let url = webView.url, !url.absoluteString.contains("beatsnvibes") {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+        var completed = false
+                
+        let host = webView.url?.host ?? ""
+        let authController = authController(sharedContext: self.context.sharedContext, updatedPresentationData: nil, title: "Sign in to \(host)", text: "Your login information will be sent securely.", apply: { result in
+            if !completed {
+                completed = true
+                if let (login, password) = result {
+                    let credential = URLCredential(
+                        user: login,
+                        password: password,
+                        persistence: .permanent
+                    )
+                    completionHandler(.useCredential, credential)
+                } else {
+                    completionHandler(.cancelAuthenticationChallenge, nil)
+                }
+            }
+        })
+        authController.dismissed = { byOutsideTap in
+            if byOutsideTap {
+                if !completed {
+                    completed = true
+                    completionHandler(.cancelAuthenticationChallenge, nil)
+                }
+            }
+        }
+        self.present(authController, nil)
+    }
+    
+    private let isLoaded = ValuePromise<Bool>(false)
+    private var instantPageDisposable = MetaDisposable()
+    private var instantPage: TelegramMediaWebpage?
+    private var instantPageResources: [Any]?
     
     func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
         if let _ = self.currentError {
@@ -763,20 +901,87 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
             }
         }
         self.updateFontState(self.currentFontState, force: true)
+        
+        self.readability = nil
+        self.instantPage = nil
+        self.instantPageResources = nil
+        self.isLoaded.set(false)
     }
     
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        self.updateState {
-            $0
-                .withUpdatedBackList(webView.backForwardList.backList.map { BrowserContentState.HistoryItem(webItem: $0) })
-                .withUpdatedForwardList(webView.backForwardList.forwardList.map { BrowserContentState.HistoryItem(webItem: $0) })
+        self.updateState {$0
+            .withUpdatedBackList(webView.backForwardList.backList.map { BrowserContentState.HistoryItem(webItem: $0) })
+            .withUpdatedForwardList(webView.backForwardList.forwardList.map { BrowserContentState.HistoryItem(webItem: $0) })
         }
         self.parseFavicon()
+        
+        self.isLoaded.set(true)
+    }
+    
+    func releaseInstantView() {
+        self.instantPageDisposable.set(nil)
+    }
+        
+    func requestInstantView() {
+        guard self.readability == nil else {
+            return
+        }
+        
+        self.instantPageDisposable.set(
+            (self.isLoaded.get()
+            |> filter { $0 }
+            |> take(1)
+            |> deliverOnMainQueue).start(next: { [weak self] _ in
+                guard let self else {
+                    return
+                }
+                guard let url = URL(string: self._state.url) else {
+                    return
+                }
+                
+                if #available(iOS 14.5, *) {
+                    self.webView.createWebArchiveData { [weak self] result in
+                        guard let self, case let .success(data) = result else {
+                            return
+                        }
+                        let readability = Readability(url: url, archiveData: data, completionHandler: { [weak self] result, error in
+                            guard let self else {
+                                return
+                            }
+                            if let (webPage, resources) = result {
+                                self.updateState {$0
+                                    .withUpdatedHasInstantView(true)
+                                }
+                                self.instantPage = webPage
+                                self.instantPageResources = resources
+                                let _ = (updatedRemoteWebpage(postbox: self.context.account.postbox, network: self.context.account.network, accountPeerId: self.context.account.peerId, webPage: WebpageReference(TelegramMediaWebpage(webpageId: MediaId(namespace: 0, id: 0), content: .Loaded(TelegramMediaWebpageLoadedContent(url: self._state.url, displayUrl: "", hash: 0, type: nil, websiteName: nil, title: nil, text: nil, embedUrl: nil, embedType: nil, embedSize: nil, duration: nil, author: nil, isMediaLargeByDefault: nil, image: nil, file: nil, story: nil, attributes: [], instantPage: nil)))))
+                                |> deliverOnMainQueue).start(next: { [weak self] webPage in
+                                    guard let self, let webPage, case let .Loaded(result) = webPage.content, let _ = result.instantPage else {
+                                        return
+                                    }
+                                    self.instantPage = webPage
+                                })
+                            } else {
+                                self.instantPage = nil
+                                self.instantPageResources = nil
+                                self.updateState {$0
+                                    .withUpdatedHasInstantView(false)
+                                }
+                            }
+                        })
+                        self.readability = readability
+                    }
+                }
+            })
+        )
     }
     
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
-        if [-1003, -1100, 102].contains((error as NSError).code) {
-            self.currentError = error
+        if [-1003, -1100].contains((error as NSError).code) {
+            if let url = (error as NSError).userInfo["NSErrorFailingURLKey"] as? URL, url.absoluteString.hasPrefix("itms-appss:") {
+            } else {
+                self.currentError = error
+            }
         } else {
             self.currentError = nil
         }
@@ -788,7 +993,7 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if navigationAction.targetFrame == nil {
             if let url = navigationAction.request.url?.absoluteString {
-                if isTelegramMeLink(url) || isTelegraPhLink(url) {
+                if isTelegramMeLink(url) || isTelegraPhLink(url) || url.hasPrefix("tg://") {
                     self.minimize()
                     self.openAppUrl(url)
                 } else {
@@ -943,7 +1148,7 @@ final class BrowserWebContent: UIView, BrowserContent, WKNavigationDelegate, WKU
             navigationController.pushViewController(controller)
             return (controller.node.content.last as? BrowserWebContent)?.webView
         } else {
-            self.pushContent(subject)
+            self.pushContent(subject, nil)
         }
         return nil
     }
@@ -1268,7 +1473,7 @@ let setupFontFunctions = """
 """
 
 private let videoSource = """
-function disableWebkitEnterFullscreen(videoElement) {
+function tgBrowserDisableWebkitEnterFullscreen(videoElement) {
   if (videoElement && videoElement.webkitEnterFullscreen) {
     Object.defineProperty(videoElement, 'webkitEnterFullscreen', {
       value: undefined
@@ -1276,11 +1481,11 @@ function disableWebkitEnterFullscreen(videoElement) {
   }
 }
 
-function disableFullscreenOnExistingVideos() {
-  document.querySelectorAll('video').forEach(disableWebkitEnterFullscreen);
+function tgBrowserDisableFullscreenOnExistingVideos() {
+  document.querySelectorAll('video').forEach(tgBrowserDisableWebkitEnterFullscreen);
 }
 
-function handleMutations(mutations) {
+function tgBrowserHandleMutations(mutations) {
   mutations.forEach((mutation) => {
     if (mutation.addedNodes && mutation.addedNodes.length > 0) {
       mutation.addedNodes.forEach((newNode) => {
@@ -1295,17 +1500,17 @@ function handleMutations(mutations) {
   });
 }
 
-disableFullscreenOnExistingVideos();
+tgBrowserDisableFullscreenOnExistingVideos();
 
-const observer = new MutationObserver(handleMutations);
+const _tgbrowser_observer = new MutationObserver(tgBrowserHandleMutations);
 
-observer.observe(document.body, {
+_tgbrowser_observer.observe(document.body, {
   childList: true,
   subtree: true
 });
 
-function disconnectObserver() {
-  observer.disconnect();
+function tgBrowserDisconnectObserver() {
+  _tgbrowser_observer.disconnect();
 }
 """
 

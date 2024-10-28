@@ -395,6 +395,7 @@ public extension Api {
         case channelAdminLogEventActionParticipantJoinByRequest(invite: Api.ExportedChatInvite, approvedBy: Int64)
         case channelAdminLogEventActionParticipantLeave
         case channelAdminLogEventActionParticipantMute(participant: Api.GroupCallParticipant)
+        case channelAdminLogEventActionParticipantSubExtend(prevParticipant: Api.ChannelParticipant, newParticipant: Api.ChannelParticipant)
         case channelAdminLogEventActionParticipantToggleAdmin(prevParticipant: Api.ChannelParticipant, newParticipant: Api.ChannelParticipant)
         case channelAdminLogEventActionParticipantToggleBan(prevParticipant: Api.ChannelParticipant, newParticipant: Api.ChannelParticipant)
         case channelAdminLogEventActionParticipantUnmute(participant: Api.GroupCallParticipant)
@@ -409,6 +410,7 @@ public extension Api {
         case channelAdminLogEventActionToggleInvites(newValue: Api.Bool)
         case channelAdminLogEventActionToggleNoForwards(newValue: Api.Bool)
         case channelAdminLogEventActionTogglePreHistoryHidden(newValue: Api.Bool)
+        case channelAdminLogEventActionToggleSignatureProfiles(newValue: Api.Bool)
         case channelAdminLogEventActionToggleSignatures(newValue: Api.Bool)
         case channelAdminLogEventActionToggleSlowMode(prevValue: Int32, newValue: Int32)
         case channelAdminLogEventActionUpdatePinned(message: Api.Message)
@@ -630,6 +632,13 @@ public extension Api {
                     }
                     participant.serialize(buffer, true)
                     break
+                case .channelAdminLogEventActionParticipantSubExtend(let prevParticipant, let newParticipant):
+                    if boxed {
+                        buffer.appendInt32(1684286899)
+                    }
+                    prevParticipant.serialize(buffer, true)
+                    newParticipant.serialize(buffer, true)
+                    break
                 case .channelAdminLogEventActionParticipantToggleAdmin(let prevParticipant, let newParticipant):
                     if boxed {
                         buffer.appendInt32(-714643696)
@@ -715,6 +724,12 @@ public extension Api {
                 case .channelAdminLogEventActionTogglePreHistoryHidden(let newValue):
                     if boxed {
                         buffer.appendInt32(1599903217)
+                    }
+                    newValue.serialize(buffer, true)
+                    break
+                case .channelAdminLogEventActionToggleSignatureProfiles(let newValue):
+                    if boxed {
+                        buffer.appendInt32(1621597305)
                     }
                     newValue.serialize(buffer, true)
                     break
@@ -804,6 +819,8 @@ public extension Api {
                 return ("channelAdminLogEventActionParticipantLeave", [])
                 case .channelAdminLogEventActionParticipantMute(let participant):
                 return ("channelAdminLogEventActionParticipantMute", [("participant", participant as Any)])
+                case .channelAdminLogEventActionParticipantSubExtend(let prevParticipant, let newParticipant):
+                return ("channelAdminLogEventActionParticipantSubExtend", [("prevParticipant", prevParticipant as Any), ("newParticipant", newParticipant as Any)])
                 case .channelAdminLogEventActionParticipantToggleAdmin(let prevParticipant, let newParticipant):
                 return ("channelAdminLogEventActionParticipantToggleAdmin", [("prevParticipant", prevParticipant as Any), ("newParticipant", newParticipant as Any)])
                 case .channelAdminLogEventActionParticipantToggleBan(let prevParticipant, let newParticipant):
@@ -832,6 +849,8 @@ public extension Api {
                 return ("channelAdminLogEventActionToggleNoForwards", [("newValue", newValue as Any)])
                 case .channelAdminLogEventActionTogglePreHistoryHidden(let newValue):
                 return ("channelAdminLogEventActionTogglePreHistoryHidden", [("newValue", newValue as Any)])
+                case .channelAdminLogEventActionToggleSignatureProfiles(let newValue):
+                return ("channelAdminLogEventActionToggleSignatureProfiles", [("newValue", newValue as Any)])
                 case .channelAdminLogEventActionToggleSignatures(let newValue):
                 return ("channelAdminLogEventActionToggleSignatures", [("newValue", newValue as Any)])
                 case .channelAdminLogEventActionToggleSlowMode(let prevValue, let newValue):
@@ -1305,6 +1324,24 @@ public extension Api {
                 return nil
             }
         }
+        public static func parse_channelAdminLogEventActionParticipantSubExtend(_ reader: BufferReader) -> ChannelAdminLogEventAction? {
+            var _1: Api.ChannelParticipant?
+            if let signature = reader.readInt32() {
+                _1 = Api.parse(reader, signature: signature) as? Api.ChannelParticipant
+            }
+            var _2: Api.ChannelParticipant?
+            if let signature = reader.readInt32() {
+                _2 = Api.parse(reader, signature: signature) as? Api.ChannelParticipant
+            }
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            if _c1 && _c2 {
+                return Api.ChannelAdminLogEventAction.channelAdminLogEventActionParticipantSubExtend(prevParticipant: _1!, newParticipant: _2!)
+            }
+            else {
+                return nil
+            }
+        }
         public static func parse_channelAdminLogEventActionParticipantToggleAdmin(_ reader: BufferReader) -> ChannelAdminLogEventAction? {
             var _1: Api.ChannelParticipant?
             if let signature = reader.readInt32() {
@@ -1500,6 +1537,19 @@ public extension Api {
             let _c1 = _1 != nil
             if _c1 {
                 return Api.ChannelAdminLogEventAction.channelAdminLogEventActionTogglePreHistoryHidden(newValue: _1!)
+            }
+            else {
+                return nil
+            }
+        }
+        public static func parse_channelAdminLogEventActionToggleSignatureProfiles(_ reader: BufferReader) -> ChannelAdminLogEventAction? {
+            var _1: Api.Bool?
+            if let signature = reader.readInt32() {
+                _1 = Api.parse(reader, signature: signature) as? Api.Bool
+            }
+            let _c1 = _1 != nil
+            if _c1 {
+                return Api.ChannelAdminLogEventAction.channelAdminLogEventActionToggleSignatureProfiles(newValue: _1!)
             }
             else {
                 return nil

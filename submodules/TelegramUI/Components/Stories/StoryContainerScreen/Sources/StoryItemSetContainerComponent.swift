@@ -1745,6 +1745,15 @@ public final class StoryItemSetContainerComponent: Component {
                                             }
                                         case let .custom(fileId):
                                             animationFileId = fileId
+                                        case .stars:
+                                            if let availableReactions = component.availableReactions {
+                                                for availableReaction in availableReactions.reactionItems {
+                                                    if availableReaction.reaction.rawValue == value {
+                                                        centerAnimation = availableReaction.listAnimation
+                                                        break
+                                                    }
+                                                }
+                                            }
                                         }
                                         
                                         if animationFileId == nil && centerAnimation == nil {
@@ -2944,6 +2953,15 @@ public final class StoryItemSetContainerComponent: Component {
                                 }
                             case let .custom(fileId):
                                 animationFileId = fileId
+                            case .stars:
+                                if let availableReactions = component.availableReactions {
+                                    for availableReaction in availableReactions.reactionItems {
+                                        if availableReaction.reaction.rawValue == value {
+                                            centerAnimation = availableReaction.listAnimation
+                                            break
+                                        }
+                                    }
+                                }
                             }
                             
                             if animationFileId == nil && centerAnimation == nil {
@@ -3802,7 +3820,7 @@ public final class StoryItemSetContainerComponent: Component {
                 isVideo = true
                 soundAlpha = 1.0
                 for attribute in file.attributes {
-                    if case let .Video(_, _, flags, _, _) = attribute {
+                    if case let .Video(_, _, flags, _, _, _) = attribute {
                         if flags.contains(.isSilent) {
                             isSilentVideo = true
                             soundAlpha = 0.5
@@ -3835,7 +3853,7 @@ public final class StoryItemSetContainerComponent: Component {
                         var isSilentVideo = false
                         if case let .file(file) = component.slice.item.storyItem.media {
                             for attribute in file.attributes {
-                                if case let .Video(_, _, flags, _, _) = attribute {
+                                if case let .Video(_, _, flags, _, _, _) = attribute {
                                     if flags.contains(.isSilent) {
                                         isSilentVideo = true
                                     }
@@ -4446,6 +4464,23 @@ public final class StoryItemSetContainerComponent: Component {
                                 return EmojiComponentReactionItem(reaction: reaction.reaction.rawValue, file: reaction.stillAnimation)
                             }
                             
+                            var selectedItems: Set<AnyHashable> = Set()
+                            if let myReaction = component.slice.item.storyItem.myReaction {
+                                switch myReaction {
+                                case .builtin, .stars:
+                                    if let availableReactions = component.availableReactions {
+                                        for availableReaction in availableReactions.reactionItems {
+                                            if availableReaction.reaction.rawValue == myReaction {
+                                                selectedItems.insert(AnyHashable(availableReaction.stillAnimation.fileId))
+                                                break
+                                            }
+                                        }
+                                    }
+                                case let .custom(fileId):
+                                    selectedItems.insert(AnyHashable(MediaId(namespace: Namespaces.Media.CloudFile, id: fileId)))
+                                }
+                            }
+                            
                             return EmojiPagerContentComponent.emojiInputData(
                                 context: component.context,
                                 animationCache: animationCache,
@@ -4457,7 +4492,7 @@ public final class StoryItemSetContainerComponent: Component {
                                 areUnicodeEmojiEnabled: false,
                                 areCustomEmojiEnabled: true,
                                 chatPeerId: component.context.account.peerId,
-                                selectedItems: Set(),
+                                selectedItems: selectedItems,
                                 premiumIfSavedMessages: false
                             )
                         },
@@ -4564,7 +4599,7 @@ public final class StoryItemSetContainerComponent: Component {
                                             
                                             standaloneReactionAnimation.frame = self.bounds
                                             self.addSubview(standaloneReactionAnimation.view)
-                                        }, completion: { [weak targetView, weak reactionContextNode] in
+                                        }, onHit: nil, completion: { [weak targetView, weak reactionContextNode] in
                                             targetView?.removeFromSuperview()
                                             if let reactionContextNode {
                                                 reactionContextNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3, removeOnCompletion: false, completion: { [weak reactionContextNode] _ in
@@ -4602,6 +4637,8 @@ public final class StoryItemSetContainerComponent: Component {
                                                 }
                                             }
                                         }
+                                    case .stars:
+                                        break
                                     }
 
                                     let message: EnqueueMessage = .message(
@@ -4748,7 +4785,7 @@ public final class StoryItemSetContainerComponent: Component {
                             
                             standaloneReactionAnimation.frame = self.bounds
                             self.componentContainerView.addSubview(standaloneReactionAnimation.view)
-                        }, completion: { [weak reactionContextNode] in
+                        }, onHit: nil, completion: { [weak reactionContextNode] in
                             if let reactionContextNode {
                                 reactionContextNode.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.3, removeOnCompletion: false, completion: { [weak reactionContextNode] _ in
                                     reactionContextNode?.view.removeFromSuperview()
@@ -5355,7 +5392,7 @@ public final class StoryItemSetContainerComponent: Component {
                 if cover {
                     if case let .file(file) = component.slice.item.storyItem.media {
                         for attribute in file.attributes {
-                            if case let .Video(_, _, _, _, coverTime) = attribute {
+                            if case let .Video(_, _, _, _, coverTime, _) = attribute {
                                 videoPlaybackPosition = coverTime
                             }
                         }
@@ -6924,48 +6961,70 @@ public final class StoryItemSetContainerComponent: Component {
                     if !component.slice.effectivePeer.isService {
                         items.append(.action(ContextMenuActionItem(text: component.strings.Story_Context_Report, icon: { theme in
                             return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Report"), color: theme.contextMenu.primaryColor)
-                        }, action: { [weak self] c, a in
+                        }, action: { [weak self] _, f in
                             guard let self, let component = self.component, let controller = component.controller() else {
                                 return
                             }
                             
-                            let options: [PeerReportOption] = [.spam, .violence, .pornography, .childAbuse, .copyright, .illegalDrugs, .personalDetails, .other]
-                            presentPeerReportOptions(
+                            f(.default)
+                            
+                            self.isReporting = true
+                            self.updateIsProgressPaused()
+                            
+                            component.context.sharedContext.makeContentReportScreen(
                                 context: component.context,
-                                parent: controller,
-                                contextController: c,
-                                backAction: { _ in },
-                                subject: .story(component.slice.effectivePeer.id, component.slice.item.storyItem.id),
-                                options: options,
-                                passthrough: true,
-                                forceTheme: defaultDarkPresentationTheme,
-                                isDetailedReportingVisible: { [weak self] isReporting in
+                                subject: .stories(component.slice.effectivePeer.id, [component.slice.item.storyItem.id]),
+                                forceDark: true,
+                                present: { c in
+                                    controller.push(c)
+                                },
+                                completion: { [weak self] in
                                     guard let self else {
                                         return
                                     }
-                                    self.isReporting = isReporting
+                                    self.isReporting = false
                                     self.updateIsProgressPaused()
                                 },
-                                completion: { [weak self] reason, _ in
-                                    guard let self, let component = self.component, let controller = component.controller(), let reason else {
-                                        return
-                                    }
-                                    let _ = component.context.engine.peers.reportPeerStory(peerId: component.slice.effectivePeer.id, storyId: component.slice.item.storyItem.id, reason: reason, message: "").startStandalone()
-                                    controller.present(
-                                        UndoOverlayController(
-                                            presentationData: presentationData,
-                                            content: .emoji(
-                                                name: "PoliceCar",
-                                                text: presentationData.strings.Report_Succeed
-                                            ),
-                                            elevatedLayout: false,
-                                            blurred: true,
-                                            action: { _ in return false }
-                                        )
-                                        , in: .current
-                                    )
-                                }
+                                requestSelectMessages: nil
                             )
+                            
+//                            let options: [PeerReportOption] = [.spam, .violence, .pornography, .childAbuse, .copyright, .illegalDrugs, .personalDetails, .other]
+//                            presentPeerReportOptions(
+//                                context: component.context,
+//                                parent: controller,
+//                                contextController: c,
+//                                backAction: { _ in },
+//                                subject: .story(component.slice.effectivePeer.id, component.slice.item.storyItem.id),
+//                                options: options,
+//                                passthrough: true,
+//                                forceTheme: defaultDarkPresentationTheme,
+//                                isDetailedReportingVisible: { [weak self] isReporting in
+//                                    guard let self else {
+//                                        return
+//                                    }
+//                                    self.isReporting = isReporting
+//                                    self.updateIsProgressPaused()
+//                                },
+//                                completion: { [weak self] reason, _ in
+//                                    guard let self, let component = self.component, let controller = component.controller(), let reason else {
+//                                        return
+//                                    }
+//                                    let _ = component.context.engine.peers.reportPeerStory(peerId: component.slice.effectivePeer.id, storyId: component.slice.item.storyItem.id, reason: reason, message: "").startStandalone()
+//                                    controller.present(
+//                                        UndoOverlayController(
+//                                            presentationData: presentationData,
+//                                            content: .emoji(
+//                                                name: "PoliceCar",
+//                                                text: presentationData.strings.Report_Succeed
+//                                            ),
+//                                            elevatedLayout: false,
+//                                            blurred: true,
+//                                            action: { _ in return false }
+//                                        )
+//                                        , in: .current
+//                                    )
+//                                }
+//                            )
                         })))
                     }
                 }

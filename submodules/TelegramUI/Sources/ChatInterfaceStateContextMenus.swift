@@ -298,7 +298,7 @@ func canReplyInChat(_ chatPresentationInterfaceState: ChatPresentationInterfaceS
         return false
     }
 
-    guard !peer.id.isReplies else {
+    guard !peer.id.isRepliesOrVerificationCodes else {
         return false
     }
     switch chatPresentationInterfaceState.mode {
@@ -397,7 +397,7 @@ func messageMediaEditingOptions(message: Message) -> MessageMediaEditingOptions 
                         return []
                     case .Animated:
                         break
-                    case let .Video(_, _, flags, _, _):
+                    case let .Video(_, _, flags, _, _, _):
                         if flags.contains(.instantRoundVideo) {
                             return []
                         } else {
@@ -594,7 +594,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/Info"), color: theme.actionSheet.primaryTextColor)
             }, iconSource: nil, action: { _, f in
                 f(.dismissWithoutContent)
-                controllerInteraction.navigationController()?.pushViewController(AdInfoScreen(context: context))
+                controllerInteraction.navigationController()?.pushViewController(AdInfoScreen(context: context, forceDark: true))
             })))
             
             let premiumConfiguration = PremiumConfiguration.with(appConfiguration: context.currentAppConfiguration.with { $0 })
@@ -725,7 +725,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
         }
     }
     
-    if Namespaces.Message.allNonRegular.contains(message.id.namespace) || message.id.peerId.isReplies {
+    if Namespaces.Message.allNonRegular.contains(message.id.namespace) || message.id.peerId.isRepliesOrVerificationCodes {
         canReply = false
         canPin = false
     } else if messages[0].flags.intersection([.Failed, .Unsent]).isEmpty {
@@ -983,7 +983,7 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                                         strongController.dismiss()
                                         
                                         let id = Int64.random(in: Int64.min ... Int64.max)
-                                        let file = TelegramMediaFile(fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: LocalFileReferenceMediaResource(localFilePath: logPath, randomId: id), previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/text", size: nil, attributes: [.FileName(fileName: "CallStats.log")])
+                                        let file = TelegramMediaFile(fileId: MediaId(namespace: Namespaces.Media.LocalFile, id: id), partialReference: nil, resource: LocalFileReferenceMediaResource(localFilePath: logPath, randomId: id), previewRepresentations: [], videoThumbnails: [], immediateThumbnailData: nil, mimeType: "application/text", size: nil, attributes: [.FileName(fileName: "CallStats.log")], alternativeRepresentations: [])
                                         let message: EnqueueMessage = .message(text: "", attributes: [], inlineStickers: [:], mediaReference: .standalone(media: file), threadId: nil, replyToMessageId: nil, replyToStoryId: nil, localGroupingKey: nil, correlationId: nil, bubbleUpEmojiOrStickersets: [])
                                         
                                         let _ = enqueueMessages(account: context.account, peerId: peerId, messages: [message]).startStandalone()
@@ -1739,26 +1739,6 @@ func contextMenuForChatPresentationInterfaceState(chatPresentationInterfaceState
                 })))
             }
         }
-//        if message.id.peerId.isGroupOrChannel {
-//            //TODO:localize
-//            if message.isAgeRestricted() {
-//                actions.append(.action(ContextMenuActionItem(text: "Unmark as 18+", icon: { theme in
-//                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/AgeUnmark"), color: theme.actionSheet.primaryTextColor)
-//                }, action: { c, _ in
-//                    c?.dismiss(completion: {
-//                        controllerInteraction.openMessageStats(messages[0].id)
-//                    })
-//                })))
-//            } else {
-//                actions.append(.action(ContextMenuActionItem(text: "Mark as 18+", icon: { theme in
-//                    return generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/AgeMark"), color: theme.actionSheet.primaryTextColor)
-//                }, action: { c, _ in
-//                    c?.dismiss(completion: {
-//                        controllerInteraction.openMessageStats(messages[0].id)
-//                    })
-//                })))
-//            }
-//        }
         
         if isReplyThreadHead {
             actions.append(.action(ContextMenuActionItem(text: chatPresentationInterfaceState.strings.Conversation_ViewInChannel, icon: { theme in

@@ -989,8 +989,8 @@ public extension Api {
         case messageActionGiftCode(flags: Int32, boostPeer: Api.Peer?, months: Int32, slug: String, currency: String?, amount: Int64?, cryptoCurrency: String?, cryptoAmount: Int64?)
         case messageActionGiftPremium(flags: Int32, currency: String, amount: Int64, months: Int32, cryptoCurrency: String?, cryptoAmount: Int64?)
         case messageActionGiftStars(flags: Int32, currency: String, amount: Int64, stars: Int64, cryptoCurrency: String?, cryptoAmount: Int64?, transactionId: String?)
-        case messageActionGiveawayLaunch
-        case messageActionGiveawayResults(winnersCount: Int32, unclaimedCount: Int32)
+        case messageActionGiveawayLaunch(flags: Int32, stars: Int64?)
+        case messageActionGiveawayResults(flags: Int32, winnersCount: Int32, unclaimedCount: Int32)
         case messageActionGroupCall(flags: Int32, call: Api.InputGroupCall, duration: Int32?)
         case messageActionGroupCallScheduled(call: Api.InputGroupCall, scheduleDate: Int32)
         case messageActionHistoryClear
@@ -1000,6 +1000,7 @@ public extension Api {
         case messageActionPaymentSentMe(flags: Int32, currency: String, totalAmount: Int64, payload: Buffer, info: Api.PaymentRequestedInfo?, shippingOptionId: String?, charge: Api.PaymentCharge)
         case messageActionPhoneCall(flags: Int32, callId: Int64, reason: Api.PhoneCallDiscardReason?, duration: Int32?)
         case messageActionPinMessage
+        case messageActionPrizeStars(flags: Int32, stars: Int64, transactionId: String, boostPeer: Api.Peer, giveawayMsgId: Int32)
         case messageActionRequestedPeer(buttonId: Int32, peers: [Api.Peer])
         case messageActionRequestedPeerSentMe(buttonId: Int32, peers: [Api.RequestedPeer])
         case messageActionScreenshotTaken
@@ -1008,6 +1009,7 @@ public extension Api {
         case messageActionSetChatTheme(emoticon: String)
         case messageActionSetChatWallPaper(flags: Int32, wallpaper: Api.WallPaper)
         case messageActionSetMessagesTTL(flags: Int32, period: Int32, autoSettingFrom: Int64?)
+        case messageActionStarGift(flags: Int32, gift: Api.StarGift, message: Api.TextWithEntities?, convertStars: Int64)
         case messageActionSuggestProfilePhoto(photo: Api.Photo)
         case messageActionTopicCreate(flags: Int32, title: String, iconColor: Int32, iconEmojiId: Int64?)
         case messageActionTopicEdit(flags: Int32, title: String?, iconEmojiId: Int64?, closed: Api.Bool?, hidden: Api.Bool?)
@@ -1175,16 +1177,18 @@ public extension Api {
                     if Int(flags) & Int(1 << 0) != 0 {serializeInt64(cryptoAmount!, buffer: buffer, boxed: false)}
                     if Int(flags) & Int(1 << 1) != 0 {serializeString(transactionId!, buffer: buffer, boxed: false)}
                     break
-                case .messageActionGiveawayLaunch:
+                case .messageActionGiveawayLaunch(let flags, let stars):
                     if boxed {
-                        buffer.appendInt32(858499565)
+                        buffer.appendInt32(-1475391004)
                     }
-                    
+                    serializeInt32(flags, buffer: buffer, boxed: false)
+                    if Int(flags) & Int(1 << 0) != 0 {serializeInt64(stars!, buffer: buffer, boxed: false)}
                     break
-                case .messageActionGiveawayResults(let winnersCount, let unclaimedCount):
+                case .messageActionGiveawayResults(let flags, let winnersCount, let unclaimedCount):
                     if boxed {
-                        buffer.appendInt32(715107781)
+                        buffer.appendInt32(-2015170219)
                     }
+                    serializeInt32(flags, buffer: buffer, boxed: false)
                     serializeInt32(winnersCount, buffer: buffer, boxed: false)
                     serializeInt32(unclaimedCount, buffer: buffer, boxed: false)
                     break
@@ -1267,6 +1271,16 @@ public extension Api {
                     }
                     
                     break
+                case .messageActionPrizeStars(let flags, let stars, let transactionId, let boostPeer, let giveawayMsgId):
+                    if boxed {
+                        buffer.appendInt32(-1341372510)
+                    }
+                    serializeInt32(flags, buffer: buffer, boxed: false)
+                    serializeInt64(stars, buffer: buffer, boxed: false)
+                    serializeString(transactionId, buffer: buffer, boxed: false)
+                    boostPeer.serialize(buffer, true)
+                    serializeInt32(giveawayMsgId, buffer: buffer, boxed: false)
+                    break
                 case .messageActionRequestedPeer(let buttonId, let peers):
                     if boxed {
                         buffer.appendInt32(827428507)
@@ -1336,6 +1350,15 @@ public extension Api {
                     serializeInt32(flags, buffer: buffer, boxed: false)
                     serializeInt32(period, buffer: buffer, boxed: false)
                     if Int(flags) & Int(1 << 0) != 0 {serializeInt64(autoSettingFrom!, buffer: buffer, boxed: false)}
+                    break
+                case .messageActionStarGift(let flags, let gift, let message, let convertStars):
+                    if boxed {
+                        buffer.appendInt32(-1682706620)
+                    }
+                    serializeInt32(flags, buffer: buffer, boxed: false)
+                    gift.serialize(buffer, true)
+                    if Int(flags) & Int(1 << 1) != 0 {message!.serialize(buffer, true)}
+                    serializeInt64(convertStars, buffer: buffer, boxed: false)
                     break
                 case .messageActionSuggestProfilePhoto(let photo):
                     if boxed {
@@ -1422,10 +1445,10 @@ public extension Api {
                 return ("messageActionGiftPremium", [("flags", flags as Any), ("currency", currency as Any), ("amount", amount as Any), ("months", months as Any), ("cryptoCurrency", cryptoCurrency as Any), ("cryptoAmount", cryptoAmount as Any)])
                 case .messageActionGiftStars(let flags, let currency, let amount, let stars, let cryptoCurrency, let cryptoAmount, let transactionId):
                 return ("messageActionGiftStars", [("flags", flags as Any), ("currency", currency as Any), ("amount", amount as Any), ("stars", stars as Any), ("cryptoCurrency", cryptoCurrency as Any), ("cryptoAmount", cryptoAmount as Any), ("transactionId", transactionId as Any)])
-                case .messageActionGiveawayLaunch:
-                return ("messageActionGiveawayLaunch", [])
-                case .messageActionGiveawayResults(let winnersCount, let unclaimedCount):
-                return ("messageActionGiveawayResults", [("winnersCount", winnersCount as Any), ("unclaimedCount", unclaimedCount as Any)])
+                case .messageActionGiveawayLaunch(let flags, let stars):
+                return ("messageActionGiveawayLaunch", [("flags", flags as Any), ("stars", stars as Any)])
+                case .messageActionGiveawayResults(let flags, let winnersCount, let unclaimedCount):
+                return ("messageActionGiveawayResults", [("flags", flags as Any), ("winnersCount", winnersCount as Any), ("unclaimedCount", unclaimedCount as Any)])
                 case .messageActionGroupCall(let flags, let call, let duration):
                 return ("messageActionGroupCall", [("flags", flags as Any), ("call", call as Any), ("duration", duration as Any)])
                 case .messageActionGroupCallScheduled(let call, let scheduleDate):
@@ -1444,6 +1467,8 @@ public extension Api {
                 return ("messageActionPhoneCall", [("flags", flags as Any), ("callId", callId as Any), ("reason", reason as Any), ("duration", duration as Any)])
                 case .messageActionPinMessage:
                 return ("messageActionPinMessage", [])
+                case .messageActionPrizeStars(let flags, let stars, let transactionId, let boostPeer, let giveawayMsgId):
+                return ("messageActionPrizeStars", [("flags", flags as Any), ("stars", stars as Any), ("transactionId", transactionId as Any), ("boostPeer", boostPeer as Any), ("giveawayMsgId", giveawayMsgId as Any)])
                 case .messageActionRequestedPeer(let buttonId, let peers):
                 return ("messageActionRequestedPeer", [("buttonId", buttonId as Any), ("peers", peers as Any)])
                 case .messageActionRequestedPeerSentMe(let buttonId, let peers):
@@ -1460,6 +1485,8 @@ public extension Api {
                 return ("messageActionSetChatWallPaper", [("flags", flags as Any), ("wallpaper", wallpaper as Any)])
                 case .messageActionSetMessagesTTL(let flags, let period, let autoSettingFrom):
                 return ("messageActionSetMessagesTTL", [("flags", flags as Any), ("period", period as Any), ("autoSettingFrom", autoSettingFrom as Any)])
+                case .messageActionStarGift(let flags, let gift, let message, let convertStars):
+                return ("messageActionStarGift", [("flags", flags as Any), ("gift", gift as Any), ("message", message as Any), ("convertStars", convertStars as Any)])
                 case .messageActionSuggestProfilePhoto(let photo):
                 return ("messageActionSuggestProfilePhoto", [("photo", photo as Any)])
                 case .messageActionTopicCreate(let flags, let title, let iconColor, let iconEmojiId):
@@ -1762,17 +1789,31 @@ public extension Api {
             }
         }
         public static func parse_messageActionGiveawayLaunch(_ reader: BufferReader) -> MessageAction? {
-            return Api.MessageAction.messageActionGiveawayLaunch
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: Int64?
+            if Int(_1!) & Int(1 << 0) != 0 {_2 = reader.readInt64() }
+            let _c1 = _1 != nil
+            let _c2 = (Int(_1!) & Int(1 << 0) == 0) || _2 != nil
+            if _c1 && _c2 {
+                return Api.MessageAction.messageActionGiveawayLaunch(flags: _1!, stars: _2)
+            }
+            else {
+                return nil
+            }
         }
         public static func parse_messageActionGiveawayResults(_ reader: BufferReader) -> MessageAction? {
             var _1: Int32?
             _1 = reader.readInt32()
             var _2: Int32?
             _2 = reader.readInt32()
+            var _3: Int32?
+            _3 = reader.readInt32()
             let _c1 = _1 != nil
             let _c2 = _2 != nil
-            if _c1 && _c2 {
-                return Api.MessageAction.messageActionGiveawayResults(winnersCount: _1!, unclaimedCount: _2!)
+            let _c3 = _3 != nil
+            if _c1 && _c2 && _c3 {
+                return Api.MessageAction.messageActionGiveawayResults(flags: _1!, winnersCount: _2!, unclaimedCount: _3!)
             }
             else {
                 return nil
@@ -1942,6 +1983,31 @@ public extension Api {
         public static func parse_messageActionPinMessage(_ reader: BufferReader) -> MessageAction? {
             return Api.MessageAction.messageActionPinMessage
         }
+        public static func parse_messageActionPrizeStars(_ reader: BufferReader) -> MessageAction? {
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: Int64?
+            _2 = reader.readInt64()
+            var _3: String?
+            _3 = parseString(reader)
+            var _4: Api.Peer?
+            if let signature = reader.readInt32() {
+                _4 = Api.parse(reader, signature: signature) as? Api.Peer
+            }
+            var _5: Int32?
+            _5 = reader.readInt32()
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            let _c3 = _3 != nil
+            let _c4 = _4 != nil
+            let _c5 = _5 != nil
+            if _c1 && _c2 && _c3 && _c4 && _c5 {
+                return Api.MessageAction.messageActionPrizeStars(flags: _1!, stars: _2!, transactionId: _3!, boostPeer: _4!, giveawayMsgId: _5!)
+            }
+            else {
+                return nil
+            }
+        }
         public static func parse_messageActionRequestedPeer(_ reader: BufferReader) -> MessageAction? {
             var _1: Int32?
             _1 = reader.readInt32()
@@ -2047,6 +2113,30 @@ public extension Api {
             let _c3 = (Int(_1!) & Int(1 << 0) == 0) || _3 != nil
             if _c1 && _c2 && _c3 {
                 return Api.MessageAction.messageActionSetMessagesTTL(flags: _1!, period: _2!, autoSettingFrom: _3)
+            }
+            else {
+                return nil
+            }
+        }
+        public static func parse_messageActionStarGift(_ reader: BufferReader) -> MessageAction? {
+            var _1: Int32?
+            _1 = reader.readInt32()
+            var _2: Api.StarGift?
+            if let signature = reader.readInt32() {
+                _2 = Api.parse(reader, signature: signature) as? Api.StarGift
+            }
+            var _3: Api.TextWithEntities?
+            if Int(_1!) & Int(1 << 1) != 0 {if let signature = reader.readInt32() {
+                _3 = Api.parse(reader, signature: signature) as? Api.TextWithEntities
+            } }
+            var _4: Int64?
+            _4 = reader.readInt64()
+            let _c1 = _1 != nil
+            let _c2 = _2 != nil
+            let _c3 = (Int(_1!) & Int(1 << 1) == 0) || _3 != nil
+            let _c4 = _4 != nil
+            if _c1 && _c2 && _c3 && _c4 {
+                return Api.MessageAction.messageActionStarGift(flags: _1!, gift: _2!, message: _3, convertStars: _4!)
             }
             else {
                 return nil

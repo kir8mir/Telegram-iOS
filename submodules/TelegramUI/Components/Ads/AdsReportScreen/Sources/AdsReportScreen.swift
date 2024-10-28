@@ -228,7 +228,8 @@ private final class SheetPageContent: CombinedComponent {
                             component.context.sharedContext.openExternalUrl(context: component.context, urlContext: .generic, url: strings.ReportAd_Help_URL, forceExternal: true, presentationData: presentationData, navigationController: nil, dismissInput: {})
                         }
                     )),
-                    items: items
+                    items: items,
+                    isModal: true
                 ),
                 environment: {},
                 availableSize: CGSize(width: context.availableSize.width - sideInset * 2.0, height: .greatestFiniteMagnitude),
@@ -396,6 +397,7 @@ private final class SheetContent: CombinedComponent {
             let navigation = navigation.update(
                 component: NavigationStackComponent(
                     items: items,
+                    clipContent: false,
                     requestPop: { [weak state] in
                         state?.pushedOptions.removeLast()
                         update(.spring(duration: 0.45))
@@ -573,6 +575,7 @@ public final class AdsReportScreen: ViewControllerComponentContainer {
         opaqueId: Data,
         title: String,
         options: [ReportAdMessageResult.Option],
+        forceDark: Bool = false,
         completed: @escaping () -> Void
     ) {
         self.context = context
@@ -593,7 +596,7 @@ public final class AdsReportScreen: ViewControllerComponentContainer {
             ),
             navigationBarAppearance: .none,
             statusBarStyle: .ignore,
-            theme: .default
+            theme: forceDark ? .dark : .default
         )
         
         self.navigationPresentation = .flatModal

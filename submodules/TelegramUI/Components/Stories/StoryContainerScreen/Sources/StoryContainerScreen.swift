@@ -1136,7 +1136,7 @@ private final class StoryContainerScreenComponent: Component {
                 var isSilentVideo = false
                 if case let .file(file) = slice.item.storyItem.media {
                     for attribute in file.attributes {
-                        if case let .Video(_, _, flags, _, _) = attribute {
+                        if case let .Video(_, _, flags, _, _, _) = attribute {
                             if flags.contains(.isSilent) {
                                 isSilentVideo = true
                             }
@@ -1655,7 +1655,7 @@ private final class StoryContainerScreenComponent: Component {
                                         }
                                         
                                         if case let .user(user) = slice.peer, user.botInfo != nil {
-                                            //TODO:localize
+                                            //TODO:release
                                             let _ = component.context.engine.messages.deleteBotPreviews(peerId: slice.peer.id, language: nil, media: [slice.item.storyItem.media._asMedia()]).startStandalone()
                                         } else {
                                             let _ = component.context.engine.messages.deleteStories(peerId: slice.peer.id, ids: [slice.item.storyItem.id]).startStandalone()
@@ -2198,6 +2198,8 @@ func allowedStoryReactions(context: AccountContext) -> Signal<[ReactionItem], No
                     largeApplicationAnimation: nil,
                     isCustom: true
                 ))
+            case .stars:
+                break
             }
         }
         

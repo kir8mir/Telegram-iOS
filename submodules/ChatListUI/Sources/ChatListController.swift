@@ -1190,6 +1190,14 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
             }
             self.openBirthdaySetup()
         }
+        
+        self.chatListDisplayNode.mainContainerNode.openStarsTopup = { [weak self] amount in
+            guard let self else {
+                return
+            }
+            self.openStarsTopup(amount: amount)
+        }
+        
         self.chatListDisplayNode.mainContainerNode.openPremiumManagement = { [weak self] in
             guard let self else {
                 return
@@ -1410,6 +1418,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                             strongSelf.presentInGlobalOverlay(contextController)
                         }
                     } else {
+                        var dismissPreviewingImpl: (() -> Void)?
                         let source: ContextContentSource
                         if let location = location {
                             source = .location(ChatListContextLocationContentSource(controller: strongSelf, location: location))
@@ -1419,11 +1428,18 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                             
                        
                             chatController.canReadHistory.set(false)
+                            chatController.dismissPreviewing = {
+                                dismissPreviewingImpl?()
+                            }
                             source = .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node, navigationController: strongSelf.navigationController as? NavigationController))
                         }
                         
                         let contextController = ContextController(presentationData: strongSelf.presentationData, source: source, items: chatContextMenuItems(context: strongSelf.context, peerId: peer.peerId, promoInfo: promoInfo, source: .chatList(filter: strongSelf.chatListDisplayNode.mainContainerNode.currentItemNode.chatListFilter), chatListController: strongSelf, joined: joined) |> map { ContextController.Items(content: .list($0)) }, gesture: gesture)
                         strongSelf.presentInGlobalOverlay(contextController)
+                        
+                        dismissPreviewingImpl = { [weak contextController] in
+                            contextController?.dismiss()
+                        }
                     }
                 case let .forum(pinnedIndex, _, threadId, _, _):
                     let isPinned: Bool
@@ -6003,6 +6019,14 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 return true
             }), in: .current)
         })
+        self.push(controller)
+    }
+    
+    func openStarsTopup(amount: Int64?) {
+        guard let starsContext = self.context.starsContext else {
+            return
+        }
+        let controller = self.context.sharedContext.makeStarsPurchaseScreen(context: self.context, starsContext: starsContext, options: [], purpose: amount.flatMap({ .topUp(requiredStars: $0, purpose: "subs") }) ?? .generic, completion: { _ in })
         self.push(controller)
     }
     

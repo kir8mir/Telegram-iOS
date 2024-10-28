@@ -188,32 +188,39 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
                                     return true
                                 }
                             case let .editExportedInvitation(_, invite), let .revokeExportedInvitation(invite), let .deleteExportedInvitation(invite), let .participantJoinedViaInvite(invite, _), let .participantJoinByRequest(invite, _):
-                                if let inviteLink = invite.link, !inviteLink.hasSuffix("...") {
+                                if let inviteLink = invite.link {
                                     if invite.isPermanent {
-                                        let actionSheet = ActionSheetController(presentationData: strongSelf.presentationData)
-                                        
-                                        var items: [ActionSheetItem] = []
-                                        items.append(ActionSheetTextItem(title: inviteLink))
-                                        items.append(ActionSheetButtonItem(title: strongSelf.presentationData.strings.InviteLink_ContextRevoke, color: .destructive, action: { [weak actionSheet] in
-                                            actionSheet?.dismissAnimated()
-                                            if let strongSelf = self {
-                                                let _ = (strongSelf.context.engine.peers.revokePeerExportedInvitation(peerId: peer.id, link: inviteLink)
-                                                |> deliverOnMainQueue).startStandalone(completed: { [weak self] in
-                                                    self?.eventLogContext.reload()
-                                                })
-                                            }
-                                        }))
-                                        actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
-                                            ActionSheetButtonItem(title: strongSelf.presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
+                                        if !inviteLink.hasSuffix("...") {
+                                            let actionSheet = ActionSheetController(presentationData: strongSelf.presentationData)
+                                            
+                                            var items: [ActionSheetItem] = []
+                                            items.append(ActionSheetTextItem(title: inviteLink))
+                                            items.append(ActionSheetButtonItem(title: strongSelf.presentationData.strings.InviteLink_ContextRevoke, color: .destructive, action: { [weak actionSheet] in
                                                 actionSheet?.dismissAnimated()
-                                            })
-                                        ])])
-                                        strongSelf.presentController(actionSheet, .window(.root), nil)
+                                                if let strongSelf = self {
+                                                    let _ = (strongSelf.context.engine.peers.revokePeerExportedInvitation(peerId: peer.id, link: inviteLink)
+                                                    |> deliverOnMainQueue).startStandalone(completed: { [weak self] in
+                                                        self?.eventLogContext.reload()
+                                                    })
+                                                }
+                                            }))
+                                            actionSheet.setItemGroups([ActionSheetItemGroup(items: items), ActionSheetItemGroup(items: [
+                                                ActionSheetButtonItem(title: strongSelf.presentationData.strings.Common_Cancel, color: .accent, font: .bold, action: { [weak actionSheet] in
+                                                    actionSheet?.dismissAnimated()
+                                                })
+                                            ])])
+                                            strongSelf.presentController(actionSheet, .window(.root), nil)
+                                        }
                                     } else {
-                                        let controller = inviteLinkEditController(context: strongSelf.context, updatedPresentationData: strongSelf.controller?.updatedPresentationData, peerId: peer.id, invite: invite, completion: { [weak self] _ in
-                                            self?.eventLogContext.reload()
-                                        })
-                                        controller.navigationPresentation = .modal
+                                        let controller = InviteLinkViewController(
+                                            context: strongSelf.context,
+                                            updatedPresentationData: strongSelf.controller?.updatedPresentationData,
+                                            peerId: peer.id,
+                                            invite: invite,
+                                            invitationsContext: nil,
+                                            revokedInvitationsContext: nil,
+                                            importersContext: nil
+                                        )
                                         strongSelf.pushController(controller)
                                     }
                                     return true
@@ -233,7 +240,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
                 let gallerySource = GalleryControllerItemSource.standaloneMessage(message, nil)
                 return context.sharedContext.openChatMessage(OpenChatMessageParams(context: context, chatLocation: nil, chatFilterTag: nil, chatLocationContextHolder: nil, message: message, standalone: true, reverseMessageGalleryOrder: false, navigationController: navigationController, dismissInput: {
                     //self?.chatDisplayNode.dismissInput()
-                }, present: { c, a in
+                }, present: { c, a, _ in
                     self?.presentController(c, .window(.root), a)
                 }, transitionNode: { messageId, media, adjustRect in
                     var selectedNode: (ASDisplayNode, CGRect, () -> (UIView?, UIView?))?
@@ -317,7 +324,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
                 self.expandedDeletedMessages.insert(messageId)
             }
         }, requestMessageActionUrlAuth: { _, _ in }, activateSwitchInline: { _, _, _ in }, openUrl: { [weak self] url in
-            self?.openUrl(url.url)
+            self?.openUrl(url.url, progress: url.progress)
         }, shareCurrentLocation: {}, shareAccountContact: {}, sendBotCommand: { _, _ in }, openInstantPage: { [weak self] message, associatedData in
             if let strongSelf = self, let navigationController = strongSelf.getNavigationController() {
                 if let controller = strongSelf.context.sharedContext.makeInstantPageController(context: strongSelf.context, message: message, sourcePeerType: associatedData?.automaticDownloadPeerType) {
@@ -609,7 +616,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
         }, openLargeEmojiInfo: { _, _, _ in
         }, openJoinLink: { _ in
         }, openWebView: { _, _, _, _ in
-        }, activateAdAction: { _, _ in
+        }, activateAdAction: { _, _, _, _ in
         }, openRequestedPeerSelection: { _, _, _, _ in
         }, saveMediaToFiles: { _ in
         }, openNoAdsDemo: {  
@@ -623,11 +630,14 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
         }, playMessageEffect: { _ in
         }, editMessageFactCheck: { _ in
         }, requestMessageUpdate: { _, _ in
+            
         }, cancelInteractiveKeyboardGestures: {
         }, dismissTextInput: {
         }, scrollToMessageId: { _ in
         }, navigateToStory: { _, _ in
         }, attemptedNavigationToPrivateQuote: { _ in
+        }, forceUpdateWarpContents: {
+        }, playShakeAnimation: {
         }, automaticMediaDownloadSettings: self.automaticMediaDownloadSettings,
         pollActionState: ChatInterfacePollActionState(), stickerSettings: ChatInterfaceStickerSettings(), presentationContext: ChatPresentationContext(context: context, backgroundNode: self.backgroundNode))
         self.controllerInteraction = controllerInteraction
@@ -1153,7 +1163,7 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
         }
     }
     
-    private func openUrl(_ url: String) {
+    private func openUrl(_ url: String, progress: Promise<Bool>? = nil) {
         self.navigationActionDisposable.set((self.context.sharedContext.resolveUrl(context: self.context, peerId: nil, url: url, skipUrlAuth: true) |> deliverOnMainQueue).startStrict(next: { [weak self] result in
             if let strongSelf = self {
                 switch result {
@@ -1199,8 +1209,8 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
                         if let invoice {
                             let inputData = Promise<BotCheckoutController.InputData?>()
                             inputData.set(BotCheckoutController.InputData.fetch(context: strongSelf.context, source: .slug(slug))
-                                          |> map(Optional.init)
-                                          |> `catch` { _ -> Signal<BotCheckoutController.InputData?, NoError> in
+                            |> map(Optional.init)
+                            |> `catch` { _ -> Signal<BotCheckoutController.InputData?, NoError> in
                                 return .single(nil)
                             })
                             strongSelf.controllerInteraction.presentController(BotCheckoutController(context: strongSelf.context, invoice: invoice, source: .slug(slug), inputData: inputData, completed: { currencyValue, receiptMessageId in
@@ -1229,11 +1239,104 @@ final class ChatRecentActionsControllerNode: ViewControllerTracingNode {
                         let browserController = strongSelf.context.sharedContext.makeInstantPageController(context: strongSelf.context, webPage: webPage, anchor: anchor, sourceLocation: InstantPageSourceLocation(userLocation: .peer(strongSelf.peer.id), peerType: .channel))
                         strongSelf.pushController(browserController)
                     case let .join(link):
-                        strongSelf.presentController(JoinLinkPreviewController(context: strongSelf.context, link: link, navigateToPeer: { peer, peekData in
-                            if let strongSelf = self {
-                                strongSelf.openPeer(peer: peer, peekData: peekData)
+                        let context = strongSelf.context
+                        let navigationController = strongSelf.getNavigationController()
+                        let openPeer: (EnginePeer, ChatPeekTimeout?) -> Void = { [weak self] peer, peekData in
+                            self?.openPeer(peer: peer, peekData: peekData)
+                        }
+                    
+                        if let progress {
+                            let progressSignal = Signal<Never, NoError> { subscriber in
+                                progress.set(.single(true))
+                                return ActionDisposable {
+                                    Queue.mainQueue().async() {
+                                        progress.set(.single(false))
+                                    }
+                                }
                             }
-                        }, parentNavigationController: strongSelf.getNavigationController()), .window(.root), nil)
+                            |> runOn(Queue.mainQueue())
+                            |> delay(0.1, queue: Queue.mainQueue())
+                            let progressDisposable = progressSignal.startStrict()
+                            
+                            var signal = context.engine.peers.joinLinkInformation(link)
+                            signal = signal
+                            |> afterDisposed {
+                                Queue.mainQueue().async {
+                                    progressDisposable.dispose()
+                                }
+                            }
+                                                        
+                            let _ = (signal
+                            |> deliverOnMainQueue).startStandalone(next: { [weak navigationController] resolvedState in
+                                switch resolvedState {
+                                case let .alreadyJoined(peer):
+                                    openPeer(peer, nil)
+                                case let .peek(peer, deadline):
+                                    openPeer(peer, ChatPeekTimeout(deadline: deadline, linkData: link))
+                                case let .invite(invite):
+                                    if let subscriptionPricing = invite.subscriptionPricing, let subscriptionFormId = invite.subscriptionFormId, let starsContext = context.starsContext {
+                                        let inputData = Promise<BotCheckoutController.InputData?>()
+                                        var photo: [TelegramMediaImageRepresentation] = []
+                                        if let photoRepresentation = invite.photoRepresentation {
+                                            photo.append(photoRepresentation)
+                                        }
+                                        let channel = TelegramChannel(id: PeerId(namespace: Namespaces.Peer.CloudChannel, id: PeerId.Id._internalFromInt64Value(0)), accessHash: .genericPublic(0), title: invite.title, username: nil, photo: photo, creationDate: 0, version: 0, participationStatus: .left, info: .broadcast(TelegramChannelBroadcastInfo(flags: [])), flags: [], restrictionInfo: nil, adminRights: nil, bannedRights: nil, defaultBannedRights: nil, usernames: [], storiesHidden: nil, nameColor: invite.nameColor, backgroundEmojiId: nil, profileColor: nil, profileBackgroundEmojiId: nil, emojiStatus: nil, approximateBoostLevel: nil, subscriptionUntilDate: nil)
+                                        let invoice = TelegramMediaInvoice(title: "", description: "", photo: nil, receiptMessageId: nil, currency: "XTR", totalAmount: subscriptionPricing.amount, startParam: "", extendedMedia: nil, flags: [], version: 0)
+                                        
+                                        inputData.set(.single(BotCheckoutController.InputData(
+                                            form: BotPaymentForm(
+                                                id: subscriptionFormId,
+                                                canSaveCredentials: false,
+                                                passwordMissing: false,
+                                                invoice: BotPaymentInvoice(isTest: false, requestedFields: [], currency: "XTR", prices: [BotPaymentPrice(label: "", amount: subscriptionPricing.amount)], tip: nil, termsInfo: nil),
+                                                paymentBotId: channel.id,
+                                                providerId: nil,
+                                                url: nil,
+                                                nativeProvider: nil,
+                                                savedInfo: nil,
+                                                savedCredentials: [],
+                                                additionalPaymentMethods: []
+                                            ),
+                                            validatedFormInfo: nil,
+                                            botPeer: EnginePeer(channel)
+                                        )))
+                                        
+                                        let starsInputData = combineLatest(
+                                            inputData.get(),
+                                            starsContext.state
+                                        )
+                                        |> map { data, state -> (StarsContext.State, BotPaymentForm, EnginePeer?, EnginePeer?)? in
+                                            if let data, let state {
+                                                return (state, data.form, data.botPeer, nil)
+                                            } else {
+                                                return nil
+                                            }
+                                        }
+                                        let _ = (starsInputData
+                                        |> SwiftSignalKit.filter { $0 != nil }
+                                        |> take(1)
+                                        |> deliverOnMainQueue).start(next: { _ in
+                                            let controller = context.sharedContext.makeStarsSubscriptionTransferScreen(context: context, starsContext: starsContext, invoice: invoice, link: link, inputData: starsInputData, navigateToPeer: { peer in
+                                                openPeer(peer, nil)
+                                            })
+                                            navigationController?.pushViewController(controller)
+                                        })
+                                    } else {
+                                        strongSelf.presentController(JoinLinkPreviewController(context: context, link: link, navigateToPeer: { peer, peekData in
+                                            openPeer(peer, peekData)
+                                        }, parentNavigationController: navigationController, resolvedState: resolvedState), .window(.root), nil)
+                                    }
+                                default:
+                                    strongSelf.presentController(JoinLinkPreviewController(context: context, link: link, navigateToPeer: { peer, peekData in
+                                        openPeer(peer, peekData)
+                                    }, parentNavigationController: navigationController, resolvedState: resolvedState), .window(.root), nil)
+                                }
+                            })
+                        } else {
+                            strongSelf.presentController(JoinLinkPreviewController(context: context, link: link, navigateToPeer: { peer, peekData in
+                                openPeer(peer, peekData)
+                            }, parentNavigationController: navigationController), .window(.root), nil)
+                        }
                     case let .localization(identifier):
                         strongSelf.presentController(LanguageLinkPreviewController(context: strongSelf.context, identifier: identifier), .window(.root), nil)
                     case .proxy, .confirmationCode, .cancelAccountReset, .share:
