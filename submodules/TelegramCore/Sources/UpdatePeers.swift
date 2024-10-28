@@ -2,6 +2,7 @@ import Foundation
 import Postbox
 import TelegramApi
 
+
 func updatePeerChatInclusionWithMinTimestamp(transaction: Transaction, id: PeerId, minTimestamp: Int32, forceRootGroupIfNotExists: Bool) {
     let currentInclusion = transaction.getPeerChatListInclusion(id)
     var updatedInclusion: PeerChatListInclusion?
@@ -90,6 +91,7 @@ func updatePeers(transaction: Transaction, accountPeerId: PeerId, peers: Accumul
     }
     updatePeersCustom(transaction: transaction, peers: parsedPeers, update: { _, updated in updated })
     
+    
     updatePeerPresences(transaction: transaction, accountPeerId: accountPeerId, peerPresences: peers.users)
 }
 
@@ -172,6 +174,7 @@ private func _internal_updateChannelMembership(transaction: Transaction, channel
         }
         
         if justJoined {
+            
             _internal_addSynchronizePeerStoriesOperation(peerId: channel.id, transaction: transaction)
         }
     } else {
@@ -193,6 +196,9 @@ public func updatePeersCustom(transaction: Transaction, peers: [Peer], update: (
         let peerId = updated.id
         
         var updated = updated
+        
+        
+        
         
         if let previous = previous as? TelegramUser, let updatedUser = updated as? TelegramUser {
             updated = TelegramUser.merge(lhs: previous, rhs: updatedUser)

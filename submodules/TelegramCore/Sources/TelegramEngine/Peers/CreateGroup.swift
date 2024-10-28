@@ -29,6 +29,7 @@ public struct CreateGroupResult {
 func _internal_createGroup(account: Account, title: String, peerIds: [PeerId], ttlPeriod: Int32?) -> Signal<CreateGroupResult?, CreateGroupError> {
     return account.postbox.transaction { transaction -> Signal<CreateGroupResult?, CreateGroupError> in
         var inputUsers: [Api.InputUser] = []
+        print("PRINT4 _internal_createGroup")
         for peerId in peerIds {
             if let peer = transaction.getPeer(peerId), let inputUser = apiInputUser(peer) {
                 inputUsers.append(inputUser)

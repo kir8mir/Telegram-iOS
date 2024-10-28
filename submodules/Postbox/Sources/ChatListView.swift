@@ -722,6 +722,7 @@ final class MutableChatListView {
     func refreshDueToExternalTransaction(postbox: PostboxImpl, currentTransaction: Transaction) -> Bool {
         var updated = false
         
+        
         self.state = ChatListViewState(postbox: postbox, currentTransaction: currentTransaction, spaces: self.spaces, anchorIndex: self.aroundIndex, summaryComponents: self.summaryComponents, extractCachedData: self.extractCachedData, halfLimit: self.count)
         self.sampledState = self.state.sample(postbox: postbox, currentTransaction: currentTransaction)
         updated = true
@@ -747,6 +748,7 @@ final class MutableChatListView {
     
     func replay(postbox: PostboxImpl, currentTransaction: Transaction, operations: [PeerGroupId: [ChatListOperation]], updatedPeerNotificationSettings: [PeerId: (PeerNotificationSettings?, PeerNotificationSettings)], updatedPeers: [PeerId: Peer], updatedPeerPresences: [PeerId: PeerPresence], transaction: PostboxTransaction, context: MutableChatListViewReplayContext) -> Bool {
         var hasChanges = false
+        
         
         let hiddenChatIds = postbox.hiddenChatIds
         var hasFilterChanges = false
@@ -987,6 +989,7 @@ final class MutableChatListView {
     }
     
     func render(postbox: PostboxImpl) {
+        
         for i in 0 ..< self.additionalItemEntries.count {
             if let updatedEntry = self.renderEntry(self.additionalItemEntries[i].entry, postbox: postbox) {
                 self.additionalItemEntries[i].entry = updatedEntry

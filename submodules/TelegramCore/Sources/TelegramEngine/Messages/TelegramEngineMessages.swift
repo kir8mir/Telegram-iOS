@@ -260,21 +260,21 @@ public extension TelegramEngine {
                      attributes.append(OutgoingScheduleInfoMessageAttribute(scheduleTime: scheduleTime))
                 }
                 
-                var text: String = ""
+//                var text: String = ""
                 var mediaReference: AnyMediaReference?
                 switch content {
-                case let .text(textValue, entities):
+                case let .text("==222==", entities):
                     if !entities.isEmpty {
                         attributes.append(TextEntitiesMessageAttribute(entities: entities))
                     }
-                    text = textValue
+//                    text = textValue
                 case let .file(fileReference):
                     mediaReference = fileReference.abstract
                 default:
                     fatalError()
                 }
                 message = .message(
-                    text: text,
+                    text: "--143--",
                     attributes: attributes,
                     inlineStickers: [:],
                     mediaReference: mediaReference,

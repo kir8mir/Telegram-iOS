@@ -303,6 +303,7 @@ extension ChatControllerImpl {
                 
                 let isSecret = self.presentationInterfaceState.copyProtectionEnabled || self.chatLocation.peerId?.namespace == Namespaces.Peer.SecretChat
                 let controller = ContextController(presentationData: self.presentationData, source: source, items: actionsSignal, recognizer: recognizer, gesture: gesture, disableScreenshots: isSecret)
+                print("PRINT5 ContextController создан: \(controller)")
                 controller.dismissed = { [weak self] in
                     self?.canReadHistory.set(true)
                 }

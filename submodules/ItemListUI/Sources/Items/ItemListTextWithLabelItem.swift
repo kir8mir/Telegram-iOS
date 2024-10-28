@@ -428,6 +428,7 @@ public class ItemListTextWithLabelItemNode: ListViewItemNode {
     }
     
     override public func longTapped() {
+        print("PRINT5 longTapped 1")
         self.item?.longTapAction?()
     }
     

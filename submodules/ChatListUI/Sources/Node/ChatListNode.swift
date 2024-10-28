@@ -382,6 +382,7 @@ private func mappedInsertEntries(context: AccountContext, nodeInteraction: ChatL
                         nodeInteraction.additionalCategorySelected(id)
                     }
                 ), directionHint: entry.directionHint)
+       
             case let .PeerEntry(peerEntry):
                 let index = peerEntry.index
                 let presentationData = peerEntry.presentationData
@@ -403,6 +404,8 @@ private func mappedInsertEntries(context: AccountContext, nodeInteraction: ChatL
                 let forumTopicData = peerEntry.forumTopicData
                 let topForumTopicItems = peerEntry.topForumTopicItems
                 let revealed = peerEntry.revealed
+            
+            
             
                 switch mode {
                     case .chatList:
@@ -454,7 +457,9 @@ private func mappedInsertEntries(context: AccountContext, nodeInteraction: ChatL
                         var chatPeer: EnginePeer?
                         if let peer = peer.peers[peer.peerId] {
                             chatPeer = peer
+                            
                         }
+                    print("chatPeer !!!!!!!:::::::!!!!!!!:::::: \(String(describing: chatPeer!.compactDisplayTitle))");
                         var enabled = true
                         if let isPeerEnabled {
                             if let itemPeer {
@@ -1245,6 +1250,7 @@ public final class ChatListNode: ListView {
     
     private var currentLocation: ChatListNodeLocation?
     public private(set) var chatListFilter: ChatListFilter? {
+       
         didSet {
             self.chatListFilterValue.set(.single(self.chatListFilter))
             
@@ -2247,13 +2253,27 @@ public final class ChatListNode: ListView {
             
             let innerIsMainTab = location == .chatList(groupId: .root) && chatListFilter == nil
             
-            let (rawEntries, isLoading) = chatListNodeEntriesForView(view: update.list, state: state, savedMessagesPeer: savedMessagesPeer, foundPeers: state.foundPeers, hideArchivedFolderByDefault: hideArchivedFolderByDefault, displayArchiveIntro: displayArchiveIntro, notice: notice, mode: mode, chatListLocation: location, contacts: contacts, accountPeerId: accountPeerId, isMainTab: innerIsMainTab)
+            
+            
+            let (rawEntries, isLoading) = chatListNodeEntriesForView(view: update.list, state: state, savedMessagesPeer: savedMessagesPeer, foundPeers: state.foundPeers, hideArchivedFolderByDefault: hideArchivedFolderByDefault, displayArchiveIntro: displayArchiveIntro, notice: notice, mode: mode, chatListLocation: location, contacts: contacts, accountPeerId: accountPeerId, isMainTab: innerIsMainTab, context: context)
             var isEmpty = true
+           
             var entries = rawEntries.filter { entry in
                 switch entry {
                 case let .PeerEntry(peerEntry):
                     let peer = peerEntry.peer
-                    
+                    if let peer = peer.peer {
+                        switch peer {
+                        case let .user(user):
+                            print("PRINT3 - User ID: \(user.id)")
+                            print("PRINT3 - First Name: \(user.firstName ?? "No first name")")
+                            print("PRINT3 - Last Name: \(user.lastName ?? "No last name")")
+                            print("PRINT3 - Username: \(user.username ?? "No username")")
+                            print("PRINT3 - Phone: \(user.phone ?? "No phone number")")
+                        default:
+                            break
+                        }
+                    }
                     switch mode {
                     case .chatList:
                         isEmpty = false

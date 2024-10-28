@@ -1,3 +1,5 @@
+import Foundation
+
 
 enum ChatListViewSpacePinned {
     case notPinned
@@ -153,10 +155,13 @@ private final class ChatListViewSpaceState {
         self.extractCachedData = extractCachedData
         self.halfLimit = halfLimit
         self.orderedEntries = OrderedChatListViewEntries(anchorIndex: anchorIndex.index, lowerOrAtAnchor: [], higherThanAnchor: [])
+        
+        
         self.fillSpace(postbox: postbox, currentTransaction: currentTransaction)
         
         self.checkEntries(postbox: postbox)
     }
+    
     
     private func fillSpace(postbox: PostboxImpl, currentTransaction: Transaction) {
         switch self.space {
@@ -401,6 +406,10 @@ private final class ChatListViewSpaceState {
         assert(self.orderedEntries.higherThanAnchor.count <= self.halfLimit)
     }
     
+
+
+    
+    
     func replay(postbox: PostboxImpl, currentTransaction: Transaction, transaction: PostboxTransaction) -> Bool {
         var hasUpdates = false
         var hadRemovals = false
@@ -588,7 +597,7 @@ private final class ChatListViewSpaceState {
                     let nowRemovedFromTotalUnreadCount = resolvedIsRemovedFromTotalUnreadCount(globalSettings: globalNotificationSettingsValue, peer: entryPeer, peerSettings: settingsChange?.1 ?? postbox.peerNotificationSettingsTable.getEffective(entryNotificationsPeerId))
                     
                     let messageTagSummaryResult = resolveChatListMessageTagSummaryResultCalculation(postbox: postbox, peerId: entryPeer.id, threadId: nil, calculation: filterPredicate.messageTagSummary)
-                    
+
                     let isIncluded = filterPredicate.includes(peer: entryPeer, groupId: groupId, isRemovedFromTotalUnreadCount: nowRemovedFromTotalUnreadCount, isUnread: isUnread, isContact: postbox.contactsTable.isContact(peerId: entryNotificationsPeerId), messageTagSummaryResult: messageTagSummaryResult)
                     if !isIncluded {
                         removeEntryIndices.append(entry.entryIndex)

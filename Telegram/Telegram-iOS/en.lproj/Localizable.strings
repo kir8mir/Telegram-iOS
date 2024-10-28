@@ -487,7 +487,7 @@
 
 // Compose
 "Compose.TokenListPlaceholder" = "Whom would you like to message?";
-"Compose.NewMessage" = "New Message";
+"Compose.NewMessage" = "New Message !-3";
 "Compose.NewGroup" = "New Group";
 "Compose.NewGroupTitle" = "New Group";
 "Compose.NewEncryptedChat" = "New Secret Chat";
@@ -670,7 +670,7 @@
 "UserInfo.Title" = "Info";
 "UserInfo.FirstNamePlaceholder" = "First Name";
 "UserInfo.LastNamePlaceholder" = "Last Name";
-"UserInfo.GenericPhoneLabel" = "mobile";
+"UserInfo.GenericPhoneLabel" = "mobile777";
 "UserInfo.SendMessage" = "Send Message";
 "UserInfo.AddContact" = "Add Contact";
 "UserInfo.ShareContact" = "Share Contact";
@@ -1786,7 +1786,7 @@
 "Watch.Contacts.NoResults" = "No matching\ncontacts found";
 "Watch.ChatList.NoConversationsTitle" = "No Conversations";
 "Watch.ChatList.NoConversationsText" = "To start messaging,\npress firmly, then tap\nNew Message";
-"Watch.ChatList.Compose" = "New Message";
+"Watch.ChatList.Compose" = "New Message !-4";
 
 "Watch.Conversation.Reply" = "Reply";
 "Watch.Conversation.Unblock" = "Unblock";
@@ -1968,7 +1968,7 @@
 "KeyCommand.Find" = "Search";
 "KeyCommand.ScrollUp" = "Scroll Up";
 "KeyCommand.ScrollDown" = "Scroll Down";
-"KeyCommand.NewMessage" = "New Message";
+"KeyCommand.NewMessage" = "New Message !-5";
 "KeyCommand.JumpToPreviousChat" = "Jump to Previous Chat";
 "KeyCommand.JumpToNextChat" = "Jump to Next Chat";
 "KeyCommand.JumpToPreviousUnreadChat" = "Jump to Previous Unread Chat";
@@ -3554,7 +3554,7 @@ Unused sets are archived when you add more.";
 "ContactInfo.Title" = "Contact Info";
 "ContactInfo.PhoneLabelHome" = "home";
 "ContactInfo.PhoneLabelWork" = "work";
-"ContactInfo.PhoneLabelMobile" = "mobile";
+"ContactInfo.PhoneLabelMobile" = "mobile666";
 "ContactInfo.PhoneLabelMain" = "main";
 "ContactInfo.PhoneLabelHomeFax" = "home fax";
 "ContactInfo.PhoneLabelWorkFax" = "work fax";
@@ -5294,7 +5294,7 @@ Sorry for the inconvenience.";
 "ChatList.EmptyChatListFilterTitle" = "Folder is empty.";
 "ChatList.EmptyChatListFilterText" = "No chats currently match this folder.";
 
-"ChatList.EmptyChatListNewMessage" = "New Message";
+"ChatList.EmptyChatListNewMessage" = "New Message !-6";
 "ChatList.EmptyChatListEditFilter" = "Edit Folder";
 
 "ChatListFilter.AddChatsTitle" = "Add Chats...";

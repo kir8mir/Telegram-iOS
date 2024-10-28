@@ -1690,6 +1690,11 @@ public final class SharedAccountContextImpl: SharedAccountContext {
         return createGroupControllerImpl(context: context, peerIds: peerIds, initialTitle: initialTitle, mode: mode, completion: completion)
     }
     
+    public func makeCreateSecretRoomController(context: AccountContext, peerIds: [PeerId], initialTitle: String?, initialAvatar: TelegramMediaImageRepresentation?,mode: CreateGroupMode, completion: ((PeerId, @escaping () -> Void) -> Void)?) -> ViewController {
+        return createSecretRoomController(context: context, peerIds: peerIds, initialTitle: initialTitle,  initialAvatar: initialAvatar, completion: completion)
+    }
+    
+    
     public func makeChatListController(context: AccountContext, location: ChatListControllerLocation, controlsHistoryPreload: Bool, hideNetworkActivityStatus: Bool, previewing: Bool, enableDebugActions: Bool) -> ChatListController {
         return ChatListControllerImpl(context: context, location: location, controlsHistoryPreload: controlsHistoryPreload, hideNetworkActivityStatus: hideNetworkActivityStatus, previewing: previewing, enableDebugActions: enableDebugActions)
     }

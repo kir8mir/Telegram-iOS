@@ -219,6 +219,7 @@ open class TabBarControllerImpl: ViewController, TabBarController {
     
     override open func loadDisplayNode() {
         self.displayNode = TabBarControllerNode(theme: self.theme, navigationBarPresentationData: self.navigationBarPresentationData, itemSelected: { [weak self] index, longTap, itemNodes in
+
             if let strongSelf = self {
                 var index = index
                 if let (cameraItem, cameraAction) = strongSelf.cameraItemAndAction {

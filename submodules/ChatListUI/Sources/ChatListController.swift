@@ -51,6 +51,7 @@ import PeerInfoStoryGridScreen
 import ArchiveInfoScreen
 import BirthdayPickerScreen
 import OldChannelsController
+import AppStatesManager
 
 private final class ContextControllerContentSourceImpl: ContextControllerContentSource {
     let controller: ViewController
@@ -65,6 +66,9 @@ private final class ContextControllerContentSourceImpl: ContextControllerContent
         self.sourceNode = sourceNode
         self.navigationController = navigationController
     }
+    
+    
+    
     
     func transitionInfo() -> ContextControllerTakeControllerInfo? {
         let sourceNode = self.sourceNode
@@ -221,7 +225,16 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         }
     }
     
+    @objc private func handleRoutePopOnAppStateChange() {
+            print("PRINT4 handleAppStateChange")
+
+           
+                let _ = self.navigationController?.popViewController(animated: true)
+            
+        }
+    
     public init(context: AccountContext, location: ChatListControllerLocation, controlsHistoryPreload: Bool, hideNetworkActivityStatus: Bool = false, previewing: Bool = false, enableDebugActions: Bool) {
+        
         self.context = context
         self.controlsHistoryPreload = controlsHistoryPreload
         self.hideNetworkActivityStatus = hideNetworkActivityStatus
@@ -234,6 +247,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         
         self.animationCache = context.animationCache
         self.animationRenderer = context.animationRenderer
+        
         
         let groupCallPanelSource: GroupCallPanelSource
         switch self.location {
@@ -250,6 +264,8 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         self.tabsNode.addSubnode(self.tabContainerNode)
                 
         super.init(context: context, navigationBarPresentationData: nil, mediaAccessoryPanelVisibility: .always, locationBroadcastPanelSource: .summary, groupCallPanelSource: groupCallPanelSource)
+        
+        observeAppStateChange(self, selector: #selector(handleRoutePopOnAppStateChange))
         
         self.accessoryPanelContainer = ASDisplayNode()
         
@@ -1398,7 +1414,10 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                         if let location = location {
                             source = .location(ChatListContextLocationContentSource(controller: strongSelf, location: location))
                         } else {
-                            let chatController = strongSelf.context.sharedContext.makeChatController(context: strongSelf.context, chatLocation: .peer(id: peer.peerId), subject: nil, botStart: nil, mode: .standard(.previewing), params: nil)
+                            //PRINT6 Cyrill Type of mode
+                            let chatController = strongSelf.context.sharedContext.makeChatController(context: strongSelf.context, chatLocation: .peer(id: peer.peerId), subject: nil, botStart: nil, mode: .standard(.default), params: nil)
+                            
+                       
                             chatController.canReadHistory.set(false)
                             source = .controller(ContextControllerContentSourceImpl(controller: chatController, sourceNode: node, navigationController: strongSelf.navigationController as? NavigationController))
                         }
@@ -1640,7 +1659,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                 guard let strongSelf = self else {
                                     return
                                 }
-                                
+                                  
                                 if isDisabled {
                                     let context = strongSelf.context
                                     var replaceImpl: ((ViewController) -> Void)?
@@ -1776,6 +1795,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                                                                 "Bottom.Group 1.Fill 1": iconColor,
                                                                 "EXAMPLE.Group 1.Fill 1": iconColor,
                                                                 "Line.Group 1.Stroke 1": iconColor
+                                                                
                                                             ], title: nil, text: text, customUndoText: nil, timeout: nil), elevatedLayout: false, animateInAsReplacement: true, action: { _ in return false })
                                                         }
                                                         strongSelf.present(overlayController, in: .current)
@@ -2596,6 +2616,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     func updateHeaderContent() -> (primaryContent: ChatListHeaderComponent.Content?, secondaryContent: ChatListHeaderComponent.Content?) {
         var primaryContent: ChatListHeaderComponent.Content?
         if let primaryContext = self.primaryContext {
+            let chatListTitleString = primaryContext.chatListTitle.map { "\($0)" } ?? "nil"
+                print("primaryContext.chatListTitle: \(chatListTitleString)")
+
             var backTitle: String?
             if let previousItem = self.previousItem {
                 switch previousItem {
@@ -2643,6 +2666,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
                 }
             )
         }
+    
         
         return (primaryContent, secondaryContent)
     }
@@ -4508,6 +4532,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
     }
     
     @objc fileprivate func composePressed() {
+        print("PRINT4 composePressed")
         guard let navigationController = self.navigationController as? NavigationController else {
             return
         }
@@ -4588,7 +4613,9 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         }
         
         let openChat: (Int) -> Void = { [weak self] index in
+            
             if let strongSelf = self {
+               
                 if index == 0 {
                     strongSelf.chatListDisplayNode.effectiveContainerNode.currentItemNode.selectChat(.peerId(strongSelf.context.account.peerId))
                 } else {
@@ -4600,6 +4627,7 @@ public class ChatListControllerImpl: TelegramBaseController, ChatListController 
         let folderShortcuts: [KeyShortcut] = (0 ... 9).map { index in
             return KeyShortcut(input: "\(index)", modifiers: [.command], action: {
                 if index == 0 {
+
                     openChat(0)
                 } else {
                     openTab(index - 1)
@@ -6760,6 +6788,7 @@ private final class ChatListLocationContext {
                     guard let self else {
                         return
                     }
+                    print("PRINT5 longTapped 10 search")
                     self.parentController?.activateSearch()
                 }
             )

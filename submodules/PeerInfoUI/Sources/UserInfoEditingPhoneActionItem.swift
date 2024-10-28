@@ -87,6 +87,7 @@ class UserInfoEditingPhoneActionItemNode: ListViewItemNode {
         self.bottomStripeNode = ASDisplayNode()
         self.bottomStripeNode.isLayerBacked = true
         
+        
         self.iconNode = ASImageNode()
         self.iconNode.isLayerBacked = true
         self.iconNode.displayWithoutProcessing = true
@@ -193,6 +194,7 @@ class UserInfoEditingPhoneActionItemNode: ListViewItemNode {
                 if self.bottomStripeNode.supernode != nil {
                     anchorNode = self.bottomStripeNode
                 } else if self.topStripeNode.supernode != nil {
+                    
                     anchorNode = self.topStripeNode
                 } else if self.backgroundNode.supernode != nil {
                     anchorNode = self.backgroundNode

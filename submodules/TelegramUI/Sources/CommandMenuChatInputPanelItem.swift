@@ -166,6 +166,7 @@ final class CommandMenuChatInputPanelItemNode: ListViewItemNode {
     }
     
     @objc private func longPressed(_ gestureRecognizer: UILongPressGestureRecognizer) {
+        print("PRINT5 longPressed")
         switch gestureRecognizer.state {
             case .began:
                 if let item = self.item {

@@ -139,6 +139,8 @@ public final class ChatControllerOverlayPresentationData {
     public let expandData: (ASDisplayNode?, () -> Void)
     public init(expandData: (ASDisplayNode?, () -> Void)) {
         self.expandData = expandData
+        
+        print("PRINT5 ChatControllerOverlayPresentationData инициализирован для отображения чата в модалке/оверлее")
     }
 }
 
@@ -757,6 +759,7 @@ public final class ChatControllerImpl: TelegramBaseController, ChatController, G
         case .inline, .standard(.embedded):
             navigationBarPresentationData = nil
         default:
+//            navigationBarPresentationData = nil
             navigationBarPresentationData = NavigationBarPresentationData(presentationData: self.presentationData, hideBackground: self.context.sharedContext.immediateExperimentalUISettings.playerEmbedding ? true : false, hideBadge: false)
         }
         

@@ -41,6 +41,8 @@ public final class OverlayMediaManager {
     public var embedPossibleEmbeddingItem: ((OverlayMediaControllerEmbeddingItem) -> Bool)?
     
     public init() {
+        
+        
     }
     
     public func attachOverlayMediaController(_ controller: OverlayMediaController & ViewController) {

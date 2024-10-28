@@ -109,5 +109,6 @@ public final class OpenChatMessageParams {
         self.gallerySource = gallerySource
         self.centralItemUpdated = centralItemUpdated
         self.getSourceRect = getSourceRect
+        print("PRINT9 OpenedChatCtrlInit")
     }
 }

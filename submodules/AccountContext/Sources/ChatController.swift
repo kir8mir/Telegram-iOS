@@ -829,6 +829,8 @@ public enum ChatControllerPresentationMode: Equatable {
     public enum StandardPresentation: Equatable {
         case `default`
         case previewing
+        case special
+
         case embedded(invertDirection: Bool)
     }
     

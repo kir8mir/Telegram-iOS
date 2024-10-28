@@ -384,6 +384,7 @@ public class ItemListMultilineTextItemNode: ListViewItemNode {
     }
     
     override public func longTapped() {
+        print("PRINT5 longTapped 2")
         self.item?.longTapAction?()
     }
     

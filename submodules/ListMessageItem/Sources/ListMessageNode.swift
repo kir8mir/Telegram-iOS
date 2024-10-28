@@ -5,6 +5,8 @@ import AsyncDisplayKit
 import Postbox
 import AccountContext
 
+//Cyrill: Message Node
+
 public class ListMessageNode: ListViewItemNode {
     var item: ListMessageItem?
     var interaction: ListMessageItemInteraction?

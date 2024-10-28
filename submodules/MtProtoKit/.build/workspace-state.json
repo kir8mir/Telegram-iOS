@@ -1,0 +1,24 @@
+{
+  "object" : {
+    "artifacts" : [
+
+    ],
+    "dependencies" : [
+      {
+        "basedOn" : null,
+        "packageRef" : {
+          "identity" : "encryptionprovider",
+          "kind" : "fileSystem",
+          "location" : "/Users/kir8mir/Documents/SWIFT/Telegram-iOS/submodules/EncryptionProvider",
+          "name" : "EncryptionProvider"
+        },
+        "state" : {
+          "name" : "fileSystem",
+          "path" : "/Users/kir8mir/Documents/SWIFT/Telegram-iOS/submodules/EncryptionProvider"
+        },
+        "subpath" : "encryptionprovider"
+      }
+    ]
+  },
+  "version" : 6
+}

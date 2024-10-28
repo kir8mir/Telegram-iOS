@@ -28,6 +28,7 @@ final class NavigationOverlayContainer: ASDisplayNode {
         self.blocksInteractionUntilReady = blocksInteractionUntilReady
         
         super.init()
+        print("PRINT6 navOverlCont: Controller - \(controller), Blocks Interaction - \(blocksInteractionUntilReady)")
         
         self.controller.navigation_setDismiss({ [weak self] in
             guard let strongSelf = self else {
@@ -37,6 +38,7 @@ final class NavigationOverlayContainer: ASDisplayNode {
         }, rootController: nil)
         
         self.controller.statusBar.alphaUpdated = { transition in
+            
             statusBarUpdated(transition)
         }
         

@@ -47,7 +47,9 @@ public final class GridMessageSelectionNode: ASDisplayNode {
     }
     
     @objc private func tapGesture(_ recognizer: UITapGestureRecognizer) {
+        print("PRINT9 Message selected: \(self.selected ? "Selected" : "Deselected") - \(self.selected.description)")
         if case .ended = recognizer.state {
+           
             self.toggle(!self.selected)
         }
     }

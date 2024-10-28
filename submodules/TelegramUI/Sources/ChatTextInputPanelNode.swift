@@ -43,6 +43,7 @@ import ChatInputPanelNode
 import TelegramNotices
 import AnimatedCountLabelNode
 import TelegramStringFormatting
+import CryptoKit
 
 private let accessoryButtonFont = Font.medium(14.0)
 private let counterFont = Font.with(size: 14.0, design: .regular, traits: [.monospacedNumbers])
@@ -4516,9 +4517,22 @@ class ChatTextInputPanelNode: ChatInputPanelNode, ASEditableTextNodeDelegate, Ch
                 return
             }
         }
-    
+        
+//        if let messageText = self.textInputNode?.textView.text {
+//            // Добавляем смайлик к началу сообщения
+////            let updatedMessageText = "😊happy_encoder😊 " + messageText
+////            self.textInputNode?.textView.text = updatedMessageText
+//
+//            // Выводим сообщение в консоль
+////            print("Message to be sent: \(updatedMessageText)")
+//        } else {
+//            print("No message text")
+//        }
+
+        print("PRINT11 I SENT")
         self.sendMessage()
     }
+
     
     @objc func sendAsAvatarButtonPressed() {
         self.interfaceInteraction?.openSendAsPeer(self.sendAsAvatarReferenceNode, nil)

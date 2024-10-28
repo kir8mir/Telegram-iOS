@@ -217,9 +217,17 @@ final class ChatSendMessageContextScreenComponent: Component {
         }
         
         @objc private func onSendButtonPressed() {
+            print("PRINT11 Peer message ->  PRESSED")
             guard let component = self.component else {
                 return
             }
+            
+            if let messageText = self.component?.textInputView.text {
+                   print("PRINT11 Peer message ->  \(messageText)")
+               } else {
+                   print("PRINT11 Peer message -> NULL")
+               }
+            
             self.animateOutToEmpty = true
             
             self.environment?.controller()?.dismiss()

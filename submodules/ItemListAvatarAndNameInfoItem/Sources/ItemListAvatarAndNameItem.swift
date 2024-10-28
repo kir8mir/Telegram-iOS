@@ -1158,6 +1158,7 @@ public class ItemListAvatarAndNameInfoItemNode: ListViewItemNode, ItemListItemNo
     }
     
     override public func longTapped() {
+        print("PRINT5 longTapped 6")
         self.item?.longTapAction?()
     }
     

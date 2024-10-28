@@ -149,6 +149,7 @@ swift_library(
         "//submodules/TelegramUI/Components/PeerManagement/OldChannelsController",
         "//submodules/TelegramUI/Components/TextNodeWithEntities",
         "//submodules/UrlHandling",
+        "//submodules/Utils/AppStatesManager",
     ],
     visibility = [
         "//visibility:public",

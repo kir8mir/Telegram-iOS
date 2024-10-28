@@ -1,4 +1,5 @@
 import Foundation
+import CustomDataCryptor
 
 public enum MessageHistoryInput: Equatable, Hashable {
     public struct Tagged: Equatable, Hashable {
@@ -65,7 +66,116 @@ private extension MessageHistoryInput {
                 }
             }
             
-            var items = postbox.messageHistoryTable.fetch(peerId: peerId, namespace: namespace, tag: tag, customTag: customTag, threadId: threadId, from: fromIndex, includeFrom: includeFrom || shouldAddFromSameGroup, to: toIndex, ignoreMessagesInTimestampRange: ignoreMessagesInTimestampRange, ignoreMessageIds: ignoreMessageIds, limit: limit)
+            let originalItems = postbox.messageHistoryTable.fetch(peerId: peerId, namespace: namespace, tag: tag, customTag: customTag, threadId: threadId, from: fromIndex, includeFrom: includeFrom || shouldAddFromSameGroup, to: toIndex, ignoreMessagesInTimestampRange: ignoreMessagesInTimestampRange, ignoreMessageIds: ignoreMessageIds, limit: limit)
+
+            var items = originalItems
+
+            let _ = "😸happy_decoder😸 "
+            
+            func extractEmojiEncodedKey(from text: String) -> String {
+                if let endIndex = text.firstIndex(of: "❓") {
+                    let keySubstring = text[..<endIndex] // Берем текст до символа "❓"
+                    return String(keySubstring)
+                }
+                return ""
+            }
+            
+            let base64ToEmojiMap: [Character: String] = [
+                "A": "😊", "B": "😂", "C": "🐱", "D": "🦄", "E": "🍎", "F": "🌸",
+                "G": "🌈", "H": "🔥", "I": "💧", "J": "🎵", "K": "🍀", "L": "🌙",
+                "M": "🍉", "N": "🎂", "O": "🌟", "P": "🍫", "Q": "⚡️", "R": "🍕",
+                "S": "☀️", "T": "🌻", "U": "🌹", "V": "🐶", "W": "🍦", "X": "🎁",
+                "Y": "🎈", "Z": "🍁", "a": "🎀", "b": "🍇", "c": "🍌", "d": "🍒",
+                "e": "🎄", "f": "🎃", "g": "🏀", "h": "🎯", "i": "💎", "j": "🎨",
+                "k": "🎹", "l": "🍩", "m": "🍰", "n": "🕹", "o": "🍻", "p": "🍷",
+                "q": "🚀", "r": "🏆", "s": "🎬", "t": "🎳", "u": "🖌", "v": "🎸",
+                "w": "🎮", "x": "🎺", "y": "🏓", "z": "🛸", "0": "🏅", "1": "🎤",
+                "2": "🎧", "3": "📚", "4": "🪁", "5": "🏄‍♂️", "6": "🕶", "7": "🚗",
+                "8": "🎩", "9": "🎼", "+": "🎪", "/": "🏡"
+            ]
+            
+            let emojiToBase64Map = Dictionary(uniqueKeysWithValues: base64ToEmojiMap.map { ($1, $0) })
+
+            func decodeEmojiToBase64(emojiString: String) -> String {
+                var base64String = ""
+                for emoji in emojiString {
+                    if let base64Char = emojiToBase64Map[String(emoji)] {
+                        base64String += String(base64Char)
+                    } else {
+                        base64String += "?" // Используем '?' если эмодзи не найдено
+                    }
+                }
+                return base64String
+            }
+            
+            func decodePublicKey(from text: String) -> String {
+                // Шаг 1: Извлекаем закодированный ключ до "❓"
+                let emojiEncodedKey = extractEmojiEncodedKey(from: text)
+                
+                // Шаг 2: Декодируем эмодзи обратно в Base64
+                let decodedBase64Key = decodeEmojiToBase64(emojiString: emojiEncodedKey)
+                
+                // Шаг 3: Декодируем Base64 строку обратно в публичный ключ
+                if let data = Data(base64Encoded: decodedBase64Key),
+                   let decodedPublicKey = String(data: data, encoding: .utf8) {
+                    return decodedPublicKey
+                } else {
+                    return "Ошибка: не удалось декодировать публичный ключ."
+                }
+            }
+
+            
+            
+           
+
+            func createUpdatedMessage(from message: IntermediateMessage, newText: String) -> IntermediateMessage {
+                print("PRINT12 message.attributesData \(message.attributesData)")
+               
+                let decodedPublicKey = decodePublicKey(from: message.text)
+                
+                print("PRINT12 decodedPublicKey \(decodedPublicKey)")
+             
+                return IntermediateMessage(
+                    stableId: message.stableId,
+                    stableVersion: message.stableVersion,
+                    id: message.id,
+                    globallyUniqueId: message.globallyUniqueId,
+                    groupingKey: message.groupingKey,
+                    groupInfo: message.groupInfo,
+                    threadId: message.threadId,
+                    timestamp: message.timestamp,
+                    flags: message.flags,
+                    tags: message.tags,
+                    globalTags: message.globalTags,
+                    localTags: message.localTags,
+                    customTags: message.customTags,
+                    forwardInfo: message.forwardInfo,
+                    authorId: message.authorId,
+                    text: decryptFrom(text: newText, peerID: message.authorId?.id.description ?? ""),
+                    attributesData: message.attributesData,
+                    embeddedMediaData: message.embeddedMediaData,
+                    referencedMedia: message.referencedMedia
+                )
+            }
+            
+            let updatedItems = items.map { item in
+                return createUpdatedMessage(from: item, newText: item.text)
+            }
+            items = updatedItems
+
+
+//            if items.count > 0 {
+//                let updatedMessage = createUpdatedMessage(from: items[0], newText: smiley + (items[0].text ))
+//                items[0] = updatedMessage
+//            }
+//            if items.count > 1 {
+//                let updatedMessage = createUpdatedMessage(from: items[1], newText: smiley + (items[1].text ))
+//                items[1] = updatedMessage
+//            }
+//            if items.count > 2 {
+//                let updatedMessage = createUpdatedMessage(from: items[2], newText: smiley + (items[2].text ))
+//                items[2] = updatedMessage
+//            }
             
             if shouldAddFromSameGroup {
                 enum Direction {

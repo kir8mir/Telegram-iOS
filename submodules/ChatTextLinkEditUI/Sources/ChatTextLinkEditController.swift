@@ -13,7 +13,7 @@ private final class ChatTextLinkEditInputFieldNode: ASDisplayNode, ASEditableTex
     private let backgroundNode: ASImageNode
     fileprivate let textInputNode: EditableTextNode
     private let placeholderNode: ASTextNode
-    
+ 
     var updateHeight: (() -> Void)?
     var complete: (() -> Void)?
     var textChanged: ((String) -> Void)?

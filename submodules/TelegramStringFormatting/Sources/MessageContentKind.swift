@@ -290,6 +290,9 @@ public func messageContentKind(contentSettings: ContentSettings, message: Engine
             return kind
         }
     }
+    let attributedText = messageTextWithAttributes(message: message)
+        print("PRINT9 Текст сообщения: \(attributedText.string)")
+    
     return .text(messageTextWithAttributes(message: message))
 }
 

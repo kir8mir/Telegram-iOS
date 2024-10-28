@@ -16,6 +16,8 @@ import TelegramPresentationData
 import TelegramStringFormatting
 import ChatTimerScreen
 import NotificationPeerExceptionController
+import AppStatesManager
+import PeerSecretsManager
 
 func archiveContextMenuItems(context: AccountContext, groupId: PeerGroupId, chatListController: ChatListControllerImpl?) -> Signal<[ContextMenuItem], NoError> {
     let presentationData = context.sharedContext.currentPresentationData.with({ $0 })
@@ -53,6 +55,68 @@ enum ChatContextMenuSource {
     case chatList(filter: ChatListFilter?)
     case search(ChatListSearchContextActionSource)
 }
+
+func navigateToCreateSecretRoom(context: AccountContext, peer: EnginePeer, chatListController: ChatListControllerImpl?, f: @escaping (ContextMenuActionResult) -> Void) {
+    f(.default)
+    
+    let createSecretRoomController = context.sharedContext.makeCreateSecretRoomController(
+        context: context,
+        peerIds: [peer.id],
+        initialTitle: "S789",
+        initialAvatar: peer.smallProfileImage,
+        mode: .generic,
+        completion: nil
+    )
+    
+    chatListController?.push(createSecretRoomController)
+}
+
+//func setUnsecret(context: AccountContext, peer: EnginePeer, chatListController: ChatListControllerImpl?, f: @escaping (ContextMenuActionResult) -> Void) {
+//    f(.default)
+//    
+//    
+//   
+//}
+
+func createSecretMenuActionItem(for peerId: PeerId, context: AccountContext, items: inout [ContextMenuItem], peer: EnginePeer, chatListController: ChatListControllerImpl?) {
+    let isSecret = isSecretPeer(peerID: peerId.id.description)
+    let currentState = getAppState()
+   
+    if currentState == .special {
+        if isSecret.isSecret {
+            items.append(.action(ContextMenuActionItem(
+                text: "Unsecret",
+                icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/MarkAsRead"), color: theme.contextMenu.primaryColor) },
+                action: { _, f in
+                    // Удаление секретного пира
+                    removePeerSecret(peerID: peerId.id.description)
+                    f(.default)
+                    
+                    let peerId = context.account.peerId
+                    // Сброс метки "непрочитанное"
+                    let _ = context.engine.messages.togglePeersUnreadMarkInteractively(
+                        peerIds: [peerId],
+                        setToValue: nil
+                    ).startStandalone(completed: {
+                        DispatchQueue.main.async {
+                            // Любой дополнительный код после выполнения действия
+                        }
+                    })
+                }
+            )))
+        } else {
+            items.append(.action(ContextMenuActionItem(
+                text: "Set as Secret",
+                icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/MarkAsRead"), color: theme.contextMenu.primaryColor) },
+                action: { _, f in
+                    // Функция для добавления нового секретного пира
+                    navigateToCreateSecretRoom(context: context, peer: peer, chatListController: chatListController, f: f)
+                }
+            )))
+        }
+    }
+}
+
 
 func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: ChatListNodeEntryPromoInfo?, source: ChatContextMenuSource, chatListController: ChatListControllerImpl?, joined: Bool) -> Signal<[ContextMenuItem], NoError> {
     let presentationData = context.sharedContext.currentPresentationData.with({ $0 })
@@ -351,7 +415,11 @@ func chatContextMenuItems(context: AccountContext, peerId: PeerId, promoInfo: Ch
                             }
                         }
                         
-                        if isUnread {
+                        let currentState = getAppState()
+                       
+                        if currentState == .special {
+                            createSecretMenuActionItem(for: peerId, context: context, items: &items, peer: peer, chatListController: chatListController)
+                        } else if isUnread {
                             items.append(.action(ContextMenuActionItem(text: strings.ChatList_Context_MarkAsRead, icon: { theme in generateTintedImage(image: UIImage(bundleImageName: "Chat/Context Menu/MarkAsRead"), color: theme.contextMenu.primaryColor) }, action: { _, f in
                                 let _ = context.engine.messages.togglePeersUnreadMarkInteractively(peerIds: [peerId], setToValue: nil).startStandalone()
                                 f(.default)

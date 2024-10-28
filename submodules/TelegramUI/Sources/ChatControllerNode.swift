@@ -877,7 +877,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         self.textInputPanelNode?.paste = { [weak self] data in
             self?.paste(data)
         }
-        self.textInputPanelNode?.displayAttachmentMenu = { [weak self] in
+        self.textInputPanelNode?.displayAttachmentMenu = { [weak self] in 
             self?.displayAttachmentMenu()
         }
         self.textInputPanelNode?.updateActivity = { [weak self] in
@@ -1766,6 +1766,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         }
         
         if let restrictedNode = self.restrictedNode {
+            print("PRINT5 restrictedNode")
             transition.updateFrame(node: restrictedNode, frame: contentBounds)
             restrictedNode.update(rect: contentBounds, within: contentBounds.size, transition: transition)
             restrictedNode.updateLayout(presentationData: ChatPresentationData(theme: ChatPresentationThemeData(theme: self.chatPresentationInterfaceState.theme, wallpaper: self.chatPresentationInterfaceState.chatWallpaper), fontSize: self.chatPresentationInterfaceState.fontSize, strings: self.chatPresentationInterfaceState.strings, dateTimeFormat: self.chatPresentationInterfaceState.dateTimeFormat, nameDisplayOrder: self.chatPresentationInterfaceState.nameDisplayOrder, disableAnimations: false, largeEmoji: false, chatBubbleCorners: PresentationChatBubbleCorners(mainRadius: 0.0, auxiliaryRadius: 0.0, mergeBubbleCorners: false)), backgroundNode: self.backgroundNode, size: contentBounds.size, transition: transition)
@@ -1775,6 +1776,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         
         var immediatelyLayoutInputContextPanelAndAnimateAppearance = false
         if let inputContextPanelNode = inputContextPanelForChatPresentationIntefaceState(self.chatPresentationInterfaceState, context: self.context, currentPanel: self.inputContextPanelNode, controllerInteraction: self.controllerInteraction, interfaceInteraction: self.interfaceInteraction, chatPresentationContext: self.controllerInteraction.presentationContext) {
+            print("PRINT5 inputContextPanelNode")
             if inputContextPanelNode !== self.inputContextPanelNode {
                 dismissedInputContextPanelNode = self.inputContextPanelNode
                 self.inputContextPanelNode = inputContextPanelNode
@@ -1794,6 +1796,8 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         
         var immediatelyLayoutOverlayContextPanelAndAnimateAppearance = false
         if let overlayContextPanelNode = chatOverlayContextPanelForChatPresentationIntefaceState(self.chatPresentationInterfaceState, context: self.context, currentPanel: self.overlayContextPanelNode, interfaceInteraction: self.interfaceInteraction, chatPresentationContext: self.controllerInteraction.presentationContext) {
+            print("PRINT5 overlayContextPanelNode")
+            
             if overlayContextPanelNode !== self.overlayContextPanelNode {
                 dismissedOverlayContextPanelNode = self.overlayContextPanelNode
                 self.overlayContextPanelNode = overlayContextPanelNode
@@ -1822,6 +1826,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         }
         
         if self.inputPanelNode != nil {
+            print("PRINT5 inputPanelNode")
             inputPanelFrame = CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - insets.bottom - bottomOverflowOffset - inputPanelsHeight - inputPanelSize!.height), size: CGSize(width: layout.size.width, height: inputPanelSize!.height))
             inputPanelFrame = inputPanelFrame!.offsetBy(dx: 0.0, dy: inputPanelHideOffset)
             if self.dismissedAsOverlay {
@@ -1844,6 +1849,7 @@ class ChatControllerNode: ASDisplayNode, ASScrollViewDelegate {
         
         var accessoryPanelFrame: CGRect?
         if self.accessoryPanelNode != nil {
+            print("PRINT5 accessoryPanelNode")
             assert(accessoryPanelSize != nil)
             accessoryPanelFrame = CGRect(origin: CGPoint(x: 0.0, y: layout.size.height - bottomOverflowOffset - insets.bottom - inputPanelsHeight - accessoryPanelSize!.height), size: CGSize(width: layout.size.width, height: accessoryPanelSize!.height))
             accessoryPanelFrame = accessoryPanelFrame!.offsetBy(dx: 0.0, dy: inputPanelHideOffset)

@@ -83,6 +83,8 @@ public final class ListMessageItem: ListViewItem {
         self.displayFileInfo = displayFileInfo
         self.displayBackground = displayBackground
         self.style = style
+        
+        print("PRINT9 Message content: \(message?.text ?? "No message text")")
     }
     
     public func nodeConfiguredForParams(async: @escaping (@escaping () -> Void) -> Void, params: ListViewItemLayoutParams, synchronousLoads: Bool, previousItem: ListViewItem?, nextItem: ListViewItem?, completion: @escaping (ListViewItemNode, @escaping () -> (Signal<Void, NoError>?, (ListViewItemApply) -> Void)) -> Void) {
@@ -164,6 +166,8 @@ public final class ListMessageItem: ListViewItem {
         guard let message = self.message else {
             return
         }
+        
+        print("PRINT9 Selected message content: \(message.text)")
         
         if case let .selectable(selected) = self.selection {
             self.interaction.toggleMessagesSelection([message.id], !selected)

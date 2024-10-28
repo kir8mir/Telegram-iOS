@@ -474,7 +474,9 @@ final class AuthorizedApplicationContext {
                                     return false
                                 }, expandAction: { expandData in
                                     if let strongSelf = self {
+                                        print("PRINT5 Открытие мини-чата в оверлее")
                                         let chatController = ChatControllerImpl(context: strongSelf.context, chatLocation: chatLocation.asChatLocation, mode: .overlay(strongSelf.rootController))
+                                        print("PRINT5 Отображаем ChatController в оверлее")
                                         chatController.presentationArguments = ChatControllerOverlayPresentationData(expandData: expandData())
                                         (strongSelf.rootController.viewControllers.last as? ViewController)?.present(chatController, in: .window(.root), with: ChatControllerOverlayPresentationData(expandData: expandData()))
                                     }

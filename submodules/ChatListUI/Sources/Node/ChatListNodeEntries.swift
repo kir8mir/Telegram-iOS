@@ -5,6 +5,24 @@ import TelegramCore
 import TelegramPresentationData
 import MergeLists
 import AccountContext
+import AppStatesManager
+import PeerSecretsManager
+
+
+import Display
+import AsyncDisplayKit
+import SwiftSignalKit
+import Postbox
+import TelegramUIPreferences
+import ItemListUI
+import PresentationDataUtils
+import AlertUI
+import PresentationDataUtils
+import NotificationSoundSelectionUI
+import TelegramStringFormatting
+import ItemListPeerItem
+import ItemListPeerActionItem
+import NotificationPeerExceptionController
 
 enum ChatListNodeEntryId: Hashable {
     case Header
@@ -466,7 +484,7 @@ enum ChatListNodeEntry: Comparable, Identifiable {
     static func <(lhs: ChatListNodeEntry, rhs: ChatListNodeEntry) -> Bool {
         return lhs.sortIndex < rhs.sortIndex
     }
-    
+        
     static func ==(lhs: ChatListNodeEntry, rhs: ChatListNodeEntry) -> Bool {
         switch lhs {
             case .HeaderEntry:
@@ -573,6 +591,9 @@ enum ChatListNodeEntry: Comparable, Identifiable {
     }
 }
 
+
+
+
 private func offsetPinnedIndex(_ index: EngineChatList.Item.Index, offset: UInt16) -> EngineChatList.Item.Index {
     if case let .chatList(index) = index, let pinningIndex = index.pinningIndex {
         return .chatList(EngineChatList.Item.Index.ChatList(pinningIndex: pinningIndex + offset, messageIndex: index.messageIndex))
@@ -591,7 +612,9 @@ struct ChatListContactPeer {
     }
 }
 
-func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, notice: ChatListNotice?, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool) -> (entries: [ChatListNodeEntry], loading: Bool) {
+var processedPeerIds = Set<EnginePeer.Id>()
+
+func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, savedMessagesPeer: EnginePeer?, foundPeers: [(EnginePeer, EnginePeer?)], hideArchivedFolderByDefault: Bool, displayArchiveIntro: Bool, notice: ChatListNotice?, mode: ChatListNodeMode, chatListLocation: ChatListControllerLocation, contacts: [ChatListContactPeer], accountPeerId: EnginePeer.Id, isMainTab: Bool, context: AccountContext) -> (entries: [ChatListNodeEntry], loading: Bool) {
     var groupItems = view.groupItems
     if isMainTab && state.archiveStoryState != nil && groupItems.isEmpty {
         groupItems.append(EngineChatList.GroupItem(
@@ -650,98 +673,205 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
     
     var hiddenGeneralThread: ChatListNodeEntry?
     
-    loop: for entry in view.items {
-        var peerId: EnginePeer.Id?
-        var threadId: Int64?
-        var activityItemId: ChatListNodePeerInputActivities.ItemId?
-        if case let .chatList(index) = entry.index {
-            peerId = index.messageIndex.id.peerId
-            activityItemId = ChatListNodePeerInputActivities.ItemId(peerId: index.messageIndex.id.peerId, threadId: nil)
-        } else if case let .forum(_, _, threadIdValue, _, _) = entry.index, case let .forum(peerIdValue) = chatListLocation {
-            peerId = peerIdValue
-            activityItemId = ChatListNodePeerInputActivities.ItemId(peerId: peerIdValue, threadId: threadIdValue)
-            threadId = threadIdValue
-        }
-        
-        if let savedMessagesPeer = savedMessagesPeer, let peerId = peerId, savedMessagesPeer.id == peerId || foundPeerIds.contains(peerId) {
-            continue loop
-        }
-        if let peerId = peerId, state.pendingRemovalItemIds.contains(ChatListNodeState.ItemId(peerId: peerId, threadId: threadId)) {
-            continue loop
-        }
-        var updatedMessages = entry.messages
-        var updatedCombinedReadState = entry.readCounters
-        if let peerId = peerId, state.pendingClearHistoryPeerIds.contains(ChatListNodeState.ItemId(peerId: peerId, threadId: threadId)) {
-            updatedMessages = []
-            updatedCombinedReadState = nil
-        }
+    var mutePeerList: [EnginePeer.Id] = []
+    
+loop: for (_, entry) in view.items.enumerated() {
+  
 
-        var draftState: ChatListItemContent.DraftState?
-        if let draft = entry.draft {
-            draftState = ChatListItemContent.DraftState(draft: draft)
-        }
-                
-        var hasActiveRevealControls = false
-        if let peerId {
-            hasActiveRevealControls = ChatListNodeState.ItemId(peerId: peerId, threadId: threadId) == state.peerIdWithRevealedOptions
-        }
-        var inputActivities: [(EnginePeer, PeerInputActivity)]?
-        if let activityItemId {
-            inputActivities = state.peerInputActivities?.activities[activityItemId]
-        }
-        
-        var isSelected = false
-        if let threadId, threadId != 0 {
-            isSelected = state.selectedThreadIds.contains(threadId)
-        } else if let peerId {
-            isSelected = state.selectedPeerIds.contains(peerId)
-        }
-        
-        var threadInfo: ChatListItemContent.ThreadInfo?
-        if let threadData = entry.threadData, let threadId = threadId {
-            threadInfo = ChatListItemContent.ThreadInfo(id: threadId, info: threadData.info, isOwnedByMe: threadData.isOwnedByMe, isClosed: threadData.isClosed, isHidden: threadData.isHidden)
-        }
-
-        let entry: ChatListNodeEntry = .PeerEntry(ChatListNodeEntry.PeerEntryData(
-            index: offsetPinnedIndex(entry.index, offset: pinnedIndexOffset),
-            presentationData: state.presentationData,
-            messages: updatedMessages,
-            readState: updatedCombinedReadState,
-            isRemovedFromTotalUnreadCount: entry.isMuted,
-            draftState: draftState,
-            mediaDraftContentType: entry.mediaDraftContentType,
-            peer: entry.renderedPeer,
-            threadInfo: threadInfo,
-            presence: entry.presence,
-            hasUnseenMentions: entry.hasUnseenMentions,
-            hasUnseenReactions: entry.hasUnseenReactions,
-            editing: state.editing,
-            hasActiveRevealControls: hasActiveRevealControls,
-            selected: isSelected,
-            inputActivities: inputActivities,
-            promoInfo: nil,
-            hasFailedMessages: entry.hasFailed,
-            isContact: entry.isContact,
-            autoremoveTimeout: entry.autoremoveTimeout,
-            forumTopicData: entry.forumTopicData,
-            topForumTopicItems: entry.topForumTopicItems,
-            revealed: threadId == 1 && (state.hiddenItemShouldBeTemporaryRevealed || state.editing),
-            storyState: entry.renderedPeer.peerId == accountPeerId ? nil : entry.storyStats.flatMap { stats -> ChatListNodeState.StoryState in
-                return ChatListNodeState.StoryState(
-                    stats: stats,
-                    hasUnseenCloseFriends: stats.hasUnseenCloseFriends
-                )
-            },
-            requiresPremiumForMessaging: entry.isPremiumRequiredToMessage,
-            displayAsTopicList: entry.displayAsTopicList
-        ))
-        
-        if let threadInfo, threadInfo.isHidden {
-            hiddenGeneralThread = entry
-        } else {
-            result.append(entry)
-        }
+    var peerId: EnginePeer.Id?
+    var threadId: Int64?
+    var activityItemId: ChatListNodePeerInputActivities.ItemId?
+    
+    if case let .chatList(index) = entry.index {
+        peerId = index.messageIndex.id.peerId
+        activityItemId = ChatListNodePeerInputActivities.ItemId(peerId: index.messageIndex.id.peerId, threadId: nil)
+    } else if case let .forum(_, _, threadIdValue, _, _) = entry.index, case let .forum(peerIdValue) = chatListLocation {
+        peerId = peerIdValue
+        activityItemId = ChatListNodePeerInputActivities.ItemId(peerId: peerIdValue, threadId: threadIdValue)
+        threadId = threadIdValue
     }
+    
+    if let savedMessagesPeer = savedMessagesPeer, let peerId = peerId, savedMessagesPeer.id == peerId || foundPeerIds.contains(peerId) {
+        continue loop
+    }
+    if let peerId = peerId, state.pendingRemovalItemIds.contains(ChatListNodeState.ItemId(peerId: peerId, threadId: threadId)) {
+        continue loop
+    }
+    var updatedMessages = entry.messages
+    var updatedCombinedReadState = entry.readCounters
+    if let peerId = peerId, state.pendingClearHistoryPeerIds.contains(ChatListNodeState.ItemId(peerId: peerId, threadId: threadId)) {
+        updatedMessages = []
+        updatedCombinedReadState = nil
+    }
+    
+    var draftState: ChatListItemContent.DraftState?
+    if let draft = entry.draft {
+        draftState = ChatListItemContent.DraftState(draft: draft)
+    }
+    
+    var hasActiveRevealControls = false
+    if let peerId {
+        hasActiveRevealControls = ChatListNodeState.ItemId(peerId: peerId, threadId: threadId) == state.peerIdWithRevealedOptions
+    }
+    var inputActivities: [(EnginePeer, PeerInputActivity)]?
+    if let activityItemId {
+        inputActivities = state.peerInputActivities?.activities[activityItemId]
+    }
+    
+    var isSelected = false
+    if let threadId, threadId != 0 {
+        isSelected = state.selectedThreadIds.contains(threadId)
+    } else if let peerId {
+        isSelected = state.selectedPeerIds.contains(peerId)
+    }
+    
+    var threadInfo: ChatListItemContent.ThreadInfo?
+    if let threadData = entry.threadData, let threadId = threadId {
+        threadInfo = ChatListItemContent.ThreadInfo(id: threadId, info: threadData.info, isOwnedByMe: threadData.isOwnedByMe, isClosed: threadData.isClosed, isHidden: threadData.isHidden)
+    }
+
+   
+//     Cyrill's code: chats filter
+        if let chatPeer = entry.renderedPeer.chatMainPeer {
+
+            var modifiedPeer = chatPeer
+            let currentState = getAppState()
+            let isSecret = isSecretPeer(peerID: chatPeer.id.id.description)
+    
+            if currentState == .special {
+                if isSecret.isSecret  {
+                    modifiedPeer = createModifiedPeer(for: chatPeer, newTitle: "🔒\(isSecret.code!)▫️\(chatPeer.debugDisplayTitle)")
+                    
+                    if entry.isMuted {
+                        print("PRINT8 entry.isMuted !!!! \(entry.isMuted)")
+                        mutePeerList.append(chatPeer.id)
+    
+//                        _ = (context.engine.peers.togglePeerMuted(peerId: chatPeer.id, threadId: nil)
+//                                             |> deliverOnMainQueue).startStandalone(completed: {
+//
+//                                    })
+                        
+                    }
+                    
+    
+                    
+                }
+    
+            } else {
+                if isSecret.isSecret {
+                    if !entry.isMuted {
+                        mutePeerList.append(chatPeer.id)
+                       
+//                        _ = (context.engine.peers.togglePeerMuted(peerId: chatPeer.id, threadId: nil)
+//                                             |> deliverOnMainQueue).startStandalone(completed: {
+//
+//                                    })
+                       
+                    }
+    
+    
+                    continue
+                }
+    
+            }
+    
+    
+    
+            let modifiedRenderedPeer = EngineRenderedPeer(peerId: modifiedPeer.id, peers: [modifiedPeer.id: modifiedPeer], associatedMedia: entry.renderedPeer.associatedMedia)
+    
+            let modifiedEntry: ChatListNodeEntry = .PeerEntry(ChatListNodeEntry.PeerEntryData(
+                    index: offsetPinnedIndex(entry.index, offset: pinnedIndexOffset),
+                    presentationData: state.presentationData,
+                    messages: updatedMessages,
+                    readState: updatedCombinedReadState,
+                    isRemovedFromTotalUnreadCount: entry.isMuted,
+                    draftState: draftState,
+                    mediaDraftContentType: entry.mediaDraftContentType,
+                    peer: modifiedRenderedPeer,
+                    threadInfo: threadInfo,
+                    presence: entry.presence,
+                    hasUnseenMentions: entry.hasUnseenMentions,
+                    hasUnseenReactions: entry.hasUnseenReactions,
+                    editing: state.editing,
+                    hasActiveRevealControls: hasActiveRevealControls,
+                    selected: isSelected,
+                    inputActivities: inputActivities,
+                    promoInfo: nil,
+                    hasFailedMessages: entry.hasFailed,
+                    isContact: entry.isContact,
+                    autoremoveTimeout: entry.autoremoveTimeout,
+                    forumTopicData: entry.forumTopicData,
+                    topForumTopicItems: entry.topForumTopicItems,
+                    revealed: threadId == 1 && (state.hiddenItemShouldBeTemporaryRevealed || state.editing),
+                    storyState: entry.renderedPeer.peerId == accountPeerId ? nil : entry.storyStats.flatMap { stats -> ChatListNodeState.StoryState in
+                        return ChatListNodeState.StoryState(
+                            stats: stats,
+                            hasUnseenCloseFriends: stats.hasUnseenCloseFriends
+                        )
+                    },
+                    requiresPremiumForMessaging: entry.isPremiumRequiredToMessage,
+                    displayAsTopicList: entry.displayAsTopicList
+                ))
+    
+                // Добавляем entry в результат
+                if let threadInfo, threadInfo.isHidden {
+                    hiddenGeneralThread = modifiedEntry
+                } else {
+                    result.append(modifiedEntry)
+                }
+        } else {
+    
+    
+            // Создание элемента для списка
+            let entry: ChatListNodeEntry = .PeerEntry(ChatListNodeEntry.PeerEntryData(
+                index: offsetPinnedIndex(entry.index, offset: pinnedIndexOffset),
+                presentationData: state.presentationData,
+                messages: updatedMessages,
+                readState: updatedCombinedReadState,
+                isRemovedFromTotalUnreadCount: entry.isMuted,
+                draftState: draftState,
+                mediaDraftContentType: entry.mediaDraftContentType,
+                peer: entry.renderedPeer,
+                threadInfo: threadInfo,
+                presence: entry.presence,
+                hasUnseenMentions: entry.hasUnseenMentions,
+                hasUnseenReactions: entry.hasUnseenReactions,
+                editing: state.editing,
+                hasActiveRevealControls: hasActiveRevealControls,
+                selected: isSelected,
+                inputActivities: inputActivities,
+                promoInfo: nil,
+                hasFailedMessages: entry.hasFailed,
+                isContact: entry.isContact,
+                autoremoveTimeout: entry.autoremoveTimeout,
+                forumTopicData: entry.forumTopicData,
+                topForumTopicItems: entry.topForumTopicItems,
+                revealed: threadId == 1 && (state.hiddenItemShouldBeTemporaryRevealed || state.editing),
+                storyState: entry.renderedPeer.peerId == accountPeerId ? nil : entry.storyStats.flatMap { stats -> ChatListNodeState.StoryState in
+                    return ChatListNodeState.StoryState(
+                        stats: stats,
+                        hasUnseenCloseFriends: stats.hasUnseenCloseFriends
+                    )
+                },
+                requiresPremiumForMessaging: entry.isPremiumRequiredToMessage,
+                displayAsTopicList: entry.displayAsTopicList
+            ))
+    
+            if let threadInfo, threadInfo.isHidden {
+                hiddenGeneralThread = entry
+            } else {
+                result.append(entry)
+            }
+}
+//    for peerId in mutePeerList {
+//        _ = (context.engine.peers.togglePeerMuted(peerId: peerId, threadId: nil)
+//                                                    |> deliverOnMainQueue).startStandalone(completed: {
+//       
+//                                           })
+//    }
+//    mutePeerList.removeAll()
+}
+
     
     if let hiddenGeneralThread {
         result.append(hiddenGeneralThread)
@@ -947,11 +1077,39 @@ func chatListNodeEntriesForView(view: EngineChatList, state: ChatListNodeState, 
             }
         }
     }
-
+    result.sort { lhs, rhs in
+            let lhsIsSecret: Bool
+            let rhsIsSecret: Bool
+            
+            // Проверка для левого чата
+            if case let .PeerEntry(lhsData) = lhs {
+                lhsIsSecret = isSecretPeer(peerID: lhsData.peer.peerId.id.description).isSecret
+            } else {
+                lhsIsSecret = false
+            }
+            
+            // Проверка для правого чата
+            if case let .PeerEntry(rhsData) = rhs {
+                rhsIsSecret = isSecretPeer(peerID: rhsData.peer.peerId.id.description).isSecret
+            } else {
+                rhsIsSecret = false
+            }
+            
+            // Сначала идут секретные чаты
+            if lhsIsSecret && !rhsIsSecret {
+                return false
+            } else if !lhsIsSecret && rhsIsSecret {
+                return true
+            } else {
+                // Если оба чата секретные или оба не секретные, сортируем по стандартному индексу
+                return lhs.sortIndex < rhs.sortIndex
+            }
+        }
     if result.count >= 1, case .HoleEntry = result[result.count - 1] {
         return ([.HeaderEntry], true)
     } else if result.count == 1, case .HoleEntry = result[0] {
         return ([.HeaderEntry], true)
     }
+    
     return (result, view.isLoading)
 }

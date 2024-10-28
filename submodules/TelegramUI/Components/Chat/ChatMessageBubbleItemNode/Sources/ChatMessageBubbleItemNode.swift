@@ -452,6 +452,8 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
         public init(contentMessageStableId: UInt32) {
             self.contentMessageStableId = contentMessageStableId
             
+            print("PRINT5 ChatMessageBubbleItemNode")
+            
             self.sourceNode = ContextExtractedContentContainingNode()
             self.containerNode = ContextControllerSourceNode()
         }
@@ -907,6 +909,7 @@ public class ChatMessageBubbleItemNode: ChatMessageItemView, ChatMessagePreviewI
                     return
                 }
             }
+            
 
             guard let subnodes = node.subnodes else {
                 return

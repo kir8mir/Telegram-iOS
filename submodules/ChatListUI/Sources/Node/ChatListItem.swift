@@ -28,6 +28,7 @@ import EmojiStatusComponent
 import AvatarVideoNode
 import AppBundle
 import MultilineTextComponent
+import PeerSecretsManager
 
 public enum ChatListItemContent {
     public struct ThreadInfo: Equatable {
@@ -2739,37 +2740,55 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                                 } else {
                                     textColor = theme.titleColor
                                 }
-                                titleAttributedString = NSAttributedString(string: displayTitle, font: titleFont, textColor: textColor)
+                                titleAttributedString = NSAttributedString(string: "Delete it --- 8 \(displayTitle)", font: titleFont, textColor: textColor)
                             }
                         }
                     } else if let threadInfo = threadInfo {
-                        titleAttributedString = NSAttributedString(string: threadInfo.info.title, font: titleFont, textColor: theme.titleColor)
+                        titleAttributedString = NSAttributedString(string: "Delete it --- 7 \(threadInfo)", font: titleFont, textColor: theme.titleColor)
                     } else if let message = messages.last, case let .user(author) = message.author, displayAsMessage {
                         titleAttributedString = NSAttributedString(string: author.id == account.peerId ? item.presentationData.strings.DialogList_You : EnginePeer.user(author).displayTitle(strings: item.presentationData.strings, displayOrder: item.presentationData.nameDisplayOrder), font: titleFont, textColor: theme.titleColor)
                     } else if isPeerGroup {
-                        titleAttributedString = NSAttributedString(string: item.presentationData.strings.ChatList_ArchivedChatsTitle, font: titleFont, textColor: theme.titleColor)
+                        titleAttributedString = NSAttributedString(string: "Delete it --- 6", font: titleFont, textColor: theme.titleColor)
                     } else if itemPeer.chatMainPeer?.id == item.context.account.peerId {
                         if case .savedMessagesChats = item.chatListLocation {
-                            titleAttributedString = NSAttributedString(string: item.presentationData.strings.DialogList_MyNotes, font: titleFont, textColor: theme.titleColor)
+                            titleAttributedString = NSAttributedString(string: "Delete it --- 5", font: titleFont, textColor: theme.titleColor)
                         } else {
                             titleAttributedString = NSAttributedString(string: item.presentationData.strings.DialogList_SavedMessages, font: titleFont, textColor: theme.titleColor)
                         }
                     } else if let id = itemPeer.chatMainPeer?.id, id.isReplies {
-                         titleAttributedString = NSAttributedString(string: item.presentationData.strings.DialogList_Replies, font: titleFont, textColor: theme.titleColor)
+                         titleAttributedString = NSAttributedString(string: "Delete it --- 4", font: titleFont, textColor: theme.titleColor)
                     } else if let id = itemPeer.chatMainPeer?.id, id.isAnonymousSavedMessages {
-                        titleAttributedString = NSAttributedString(string: item.presentationData.strings.ChatList_AuthorHidden, font: titleFont, textColor: theme.titleColor)
+                        titleAttributedString = NSAttributedString(string: "Delete it --- 3", font: titleFont, textColor: theme.titleColor)
                     } else if let displayTitle = itemPeer.chatMainPeer?.displayTitle(strings: item.presentationData.strings, displayOrder: item.presentationData.nameDisplayOrder) {
-                        let textColor: UIColor
+                        var textColor: UIColor
                         if case let .chatList(index) = item.index, index.messageIndex.id.peerId.namespace == Namespaces.Peer.SecretChat {
                             textColor = theme.secretTitleColor
                         } else {
+                            
                             textColor = theme.titleColor
                         }
+                        
+                        
+                        if let peerID = itemPeer.chatMainPeer?.id {
+
+           
+                            let isSecret = isSecretPeer(peerID: peerID.id.description )
+                            if isSecret.isSecret {
+                                textColor = theme.secretTitleColor
+                                print("PRINT7 This is secret color: \(peerID)")
+                            }
+                        }
+                        
+                        //Cyrill's comment titleAttributedString = NSAttributedString(string: "HELLO_\(displayTitle)", font: titleFont, textColor: textColor)
+                        
+                       
+                        
+                        
                         titleAttributedString = NSAttributedString(string: displayTitle, font: titleFont, textColor: textColor)
                     }
                 case .group:
-                    titleAttributedString = NSAttributedString(string: item.presentationData.strings.ChatList_ArchivedChatsTitle, font: titleFont, textColor: theme.titleColor)
-            }
+                    titleAttributedString = NSAttributedString(string: item.presentationData.strings.ChatList_ArchivedChatsTitle, font: titleFont, textColor: theme.titleColor
+            )}
             
             textAttributedString = attributedText
             
@@ -3683,6 +3702,7 @@ public class ChatListItemNode: ItemListRevealOptionsItemNode {
                     var currentTextSnapshotView: UIView?
                     if transition.isAnimated, let currentItem, currentItem.editing != item.editing, strongSelf.textNode.textNode.cachedLayout?.linesRects() != textLayout.linesRects() {
                         if let textSnapshotView = strongSelf.textNode.textNode.view.snapshotContentTree() {
+                            print("textSnapshotView: \(textSnapshotView)")
                             textSnapshotView.layer.anchorPoint = CGPoint()
                             currentTextSnapshotView = textSnapshotView
                             strongSelf.textNode.textNode.view.superview?.insertSubview(textSnapshotView, aboveSubview: strongSelf.textNode.textNode.view)

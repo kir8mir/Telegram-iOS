@@ -1,4 +1,5 @@
 import Foundation
+import CustomDataCryptor
 
 struct IntermediateMessageHistoryEntry {
     let message: IntermediateMessage
@@ -2036,8 +2037,12 @@ final class MessageHistoryTable: Table {
             }
             
             self.valueBox.set(self.table, key: self.key(message.index, key: sharedKey), value: sharedBuffer)
+            print("PRINT16 groupInfo  \(groupInfo.debugDescription.description)")
             
-            let result = (IntermediateMessage(stableId: stableId, stableVersion: stableVersion, id: message.id, globallyUniqueId: message.globallyUniqueId, groupingKey: message.groupingKey, groupInfo: groupInfo, threadId: message.threadId, timestamp: message.timestamp, flags: flags, tags: tags, globalTags: message.globalTags, localTags: updatedLocalTags, customTags: message.customTags, forwardInfo: intermediateForwardInfo, authorId: message.authorId, text: message.text, attributesData: attributesBuffer.makeReadBufferAndReset(), embeddedMediaData: embeddedMediaBuffer.makeReadBufferAndReset(), referencedMedia: referencedMedia), previousMessage.tags)
+            print("PRINT16 message.attributes.description  \(message.attributes.description)")
+            print("PRINT16 message.threadId?.description  \(String(describing: message.threadId?.description))")
+            //Cyrill: decode here
+            let result = (IntermediateMessage(stableId: stableId, stableVersion: stableVersion, id: message.id, globallyUniqueId: message.globallyUniqueId, groupingKey: message.groupingKey, groupInfo: groupInfo, threadId: message.threadId, timestamp: message.timestamp, flags: flags, tags: tags, globalTags: message.globalTags, localTags: updatedLocalTags, customTags: message.customTags, forwardInfo: intermediateForwardInfo, authorId: message.authorId, text: decryptFrom(text: message.text, peerID: message.authorId?.id.description ?? "")  , attributesData: attributesBuffer.makeReadBufferAndReset(), embeddedMediaData: embeddedMediaBuffer.makeReadBufferAndReset(), referencedMedia: referencedMedia), previousMessage.tags)
             
             for media in mediaToUpdate {
                 if let id = media.id {
@@ -2590,7 +2595,48 @@ final class MessageHistoryTable: Table {
                 }
             }
             
-            return IntermediateMessageHistoryEntry(message: IntermediateMessage(stableId: stableId, stableVersion: stableVersion, id: index.id, globallyUniqueId: globallyUniqueId, groupingKey: groupingKey, groupInfo: groupInfo, threadId: threadId, timestamp: index.timestamp, flags: flags, tags: tags, globalTags: globalTags, localTags: localTags, customTags: customTags, forwardInfo: forwardInfo, authorId: authorId, text: text, attributesData: attributesData, embeddedMediaData: embeddedMediaData, referencedMedia: referencedMediaIds))
+            
+            
+            
+            //Cyrill: public key
+            
+//            let publicKey = """
+//            -----BEGIN PUBLIC KEY-----
+//            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtvO54XwO1y95m6c5JuyE
+//            KJXNml9ak5Atyfhx8jQlzzGCMLOK0rbOjWvtiFB3z+5mgzB6F6cm+R0jS/utJl5h
+//            HUMykBeLjPdZMdKjHn88KjVAvFjEovr3TbFg8lNMSPj90v5B98LM4WZ1XGdV01zn
+//            RlmMj3ZCWTnB/WJicvGpUv7Bt1mi+hucPLgX8HV+10alXznEB7uTcM/qSxBFLX9x
+//            O/RcyNoyQ2wZIV+mYTWQ5+0zVL6Gi8UD5zm0pj7Rb/Fl8m7O4GjcWmL7TxBUzvP5
+//            rxrbzkSY9+prmLugCxqZbRmkgQZKwHihmCm/XHrN2yz7Pz9vhdZz8u9MSUtZlg8p
+//            uQIDAQAB
+//            -----END PUBLIC KEY-----
+//            """
+            
+//            let publicKey = authorId?.id.description ?? "--+--"
+            
+            
+            // Пример кодирования публичного ключа
+//            let base64PublicKey = publicKey.data(using: .utf8)!.base64EncodedString()
+//            
+//            let nullWideSpace = "\u{200B}"
+//            let encodedKeyMarker = "🔑"
+//            let originalText = text
+//            
+//            
+//
+//            // Проверяем, начинается ли текст с nullWideSpace
+//            let formattedText: String
+//            if originalText.hasPrefix(nullWideSpace) {
+//                formattedText = originalText
+//            } else {
+//                formattedText = "\(nullWideSpace)\(encodedKeyMarker) | \(encryptToEmoji(text: text))"
+//            }
+            
+            
+            
+            
+            print("PRINT13 forwardInfo?.authorId?.id.description \(String(describing: forwardInfo?.authorId))")
+            return IntermediateMessageHistoryEntry(message: IntermediateMessage(stableId: stableId, stableVersion: stableVersion, id: index.id, globallyUniqueId: globallyUniqueId, groupingKey: groupingKey, groupInfo: groupInfo, threadId: threadId, timestamp: index.timestamp, flags: flags, tags: tags, globalTags: globalTags, localTags: localTags, customTags: customTags, forwardInfo: forwardInfo, authorId: authorId, text: encryptTo(text: text, peerID: authorId?.id.description ?? ""), attributesData: attributesData, embeddedMediaData: embeddedMediaData, referencedMedia: referencedMediaIds))
         } else {
             preconditionFailure()
         }

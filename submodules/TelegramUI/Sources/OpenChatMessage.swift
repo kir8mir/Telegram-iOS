@@ -36,6 +36,8 @@ func openChatMessageImpl(_ params: OpenChatMessageParams) -> Bool {
         }
     }
     
+    print("PRINT5 OpenChatMessage")
+    
     if let story {
         let navigationController = params.navigationController
         let context = params.context
@@ -425,6 +427,8 @@ func openChatTheme(context: AccountContext, message: Message, pushController: @e
                 var file: TelegramMediaFile?
                 var settings: TelegramThemeSettings?
                 let themeMimeType = "application/x-tgtheme-ios"
+                
+                print("PRINT5 openChatTheme")
                 
                 for attribute in content.attributes {
                     if case let .theme(attribute) = attribute {

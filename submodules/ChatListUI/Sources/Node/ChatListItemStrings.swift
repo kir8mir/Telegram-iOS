@@ -82,6 +82,8 @@ public func chatListItemStrings(strings: PresentationStrings, nameDisplayOrder: 
     
     let message = messages.last
     
+ 
+    
     if let restrictionReason = message?._asMessage().restrictionReason(platform: "ios", contentSettings: contentSettings) {
         return (nil, false, restrictionReason, nil, nil)
     }
@@ -438,5 +440,20 @@ public func chatListItemStrings(strings: PresentationStrings, nameDisplayOrder: 
         }
     }
     
+//    if let chatMainPeer = chatPeer.chatMainPeer {
+//        messageText = "\(chatMainPeer.compactDisplayTitle) (добавленное слово)"
+//    }
+    
+    
+    // Cyrill's Comment
+    messageText = "Here could be your AD but - \(messageText)"
+    
+    
+//    if let peer = peer {
+//         print("Chat name: \(peer.displayTitle(strings: strings, displayOrder: nameDisplayOrder))")
+//     } else {
+//         print("Chat name: Unknown")
+//     }
+//    
     return (peer, hideAuthor, messageText, spoilers, customEmojiRanges)
 }

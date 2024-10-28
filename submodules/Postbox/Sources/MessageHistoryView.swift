@@ -1019,6 +1019,7 @@ final class MutableMessageHistoryView: MutablePostboxView {
     private func render(postbox: PostboxImpl) {
         for namespace in self.topTaggedMessages.keys {
             if let entry = self.topTaggedMessages[namespace]!, case let .intermediate(message) = entry {
+                print("PRINT9 Message Text: \(message.text)")
                 let item: MessageHistoryTopTaggedMessage? = .message(postbox.messageHistoryTable.renderMessage(message, peerTable: postbox.peerTable, threadIndexTable: postbox.messageHistoryThreadIndexTable, storyTable: postbox.storyTable))
                 self.topTaggedMessages[namespace] = item
             }

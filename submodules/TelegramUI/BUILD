@@ -274,6 +274,8 @@ swift_library(
         "//submodules/PremiumUI:PremiumUI",
         "//submodules/Components/HierarchyTrackingLayer:HierarchyTrackingLayer",
         "//submodules/Utils/RangeSet:RangeSet",
+        "//submodules/Utils/AppStatesManager",
+        "//submodules/Utils/PeerSecretsManager",
         "//submodules/InAppPurchaseManager:InAppPurchaseManager",
         "//submodules/TelegramUI/Components/AudioTranscriptionButtonComponent:AudioTranscriptionButtonComponent",
         "//submodules/TelegramUI/Components/AudioTranscriptionPendingIndicatorComponent:AudioTranscriptionPendingIndicatorComponent",

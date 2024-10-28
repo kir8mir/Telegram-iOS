@@ -110,6 +110,7 @@ import PeerSelectionScreen
 import UIKitRuntimeUtils
 import OldChannelsController
 import UrlHandling
+import AppStatesManager
 
 public enum PeerInfoAvatarEditingMode {
     case generic
@@ -926,12 +927,55 @@ private func settingsItems(data: PeerInfoScreenData?, context: AccountContext, p
         }
     }
     
+    // Cyrill's code: Added switch for showing marked users
+    
+    items[.shortcuts]!.append(PeerInfoScreenMultilineInputItem(
+        id: "customInputId",
+        text: UserDefaults.standard.string(forKey: "userSecretPin") ?? "",
+        placeholder: "Enter your secret pin here...",
+        textUpdated: { updatedText in
+           
+            UserDefaults.standard.set(updatedText, forKey: "userSecretPin")
+        },
+        action: {
+        },
+        maxLength: 100
+    ))
+    
+    items[.shortcuts]!.append(PeerInfoScreenSwitchItem(
+            id: 0,
+            text: "Show Marked Users",
+            value: getAppState() == .special,
+            icon: PresentationResourcesSettings.stories,
+            toggled: { newValue in
+              
+//                if newValue {
+//                    setAppState(.special)
+//                } else {
+//                    setAppState(.normal)
+//                }
+                
+               
+//                UserDefaults.standard.set(newValue, forKey: "showMarkedUsersKey")
+                
+               
+//                let _ = (context.engine.messages.togglePeersUnreadMarkInteractively(peerIds: [context.account.peerId], setToValue: nil)
+//                |> deliverOnMainQueue).startStandalone(completed: {
+//                })
+            }
+        ))
+    
     items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 1, text: presentationData.strings.Settings_SavedMessages, icon: PresentationResourcesSettings.savedMessages, action: {
         interaction.openSettings(.savedMessages)
     }))
+
+    
+
     items[.shortcuts]!.append(PeerInfoScreenDisclosureItem(id: 2, text: presentationData.strings.CallSettings_RecentCalls, icon: PresentationResourcesSettings.recentCalls, action: {
         interaction.openSettings(.recentCalls)
     }))
+    
+    
     
     let devicesLabel: String
     if let settings = data.globalSettings, let otherSessionsCount = settings.otherSessionsCount {
@@ -1210,6 +1254,8 @@ private enum InfoSection: Int, CaseIterable {
 
 private func infoItems(data: PeerInfoScreenData?, context: AccountContext, presentationData: PresentationData, interaction: PeerInfoInteraction, nearbyPeerDistance: Int32?, reactionSourceMessageId: MessageId?, callMessages: [Message], chatLocation: ChatLocation, isOpenedFromChat: Bool, isMyProfile: Bool) -> [(AnyHashable, [PeerInfoScreenItem])] {
     guard let data = data else {
+        
+        
         return []
     }
     
@@ -1576,6 +1622,7 @@ private func infoItems(data: PeerInfoScreenData?, context: AccountContext, prese
                     action: { _, progress in
                         interaction.openUsername(linkText, true, progress)
                     }, longTapAction: { sourceNode in
+                        print("PRINT5 longTapAction")
                         interaction.openPeerInfoContextMenu(.link(customLink: linkText), sourceNode, nil)
                     }, linkItemAction: { type, item, _, _, progress in
                         if case .tap = type {
@@ -2696,6 +2743,8 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         
         super.init()
         
+        
+        
         self.paneContainerNode.parentController = controller
         
         self._interaction = PeerInfoInteraction(
@@ -3348,6 +3397,8 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
             }
             if foundGalleryMessage == nil, let galleryMessage = strongSelf.paneContainerNode.findLoadedMessage(id: message.id) {
                 foundGalleryMessage = galleryMessage
+                
+                print("PRINT9 foundGalleryMessage \(String(describing: foundGalleryMessage))")
             }
             
             if let foundGalleryMessage = foundGalleryMessage {
@@ -5332,6 +5383,10 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         }))
     }
     
+    private func myFunc() {
+        var _ = self.context.account.postbox.stateView().start()
+    }
+    
     private func openHashtag(_ hashtag: String, peerName: String?) {
         if self.resolvePeerByNameDisposable == nil {
             self.resolvePeerByNameDisposable = MetaDisposable()
@@ -6734,8 +6789,10 @@ final class PeerInfoScreenNode: ViewControllerTracingNode, PeerInfoScreenNodePro
         })
     }
     
-    private func openStartSecretChat() {
-        let peerId = self.peerId
+    //Cyrill
+    
+    public func openStartSecretChat(peerID: PeerId? = nil) {
+        let peerId = peerID ?? self.peerId
         
         let _ = (combineLatest(
             self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: self.peerId)),
@@ -12751,6 +12808,7 @@ public final class PeerInfoScreenImpl: ViewController, PeerInfoScreen, KeyShortc
     }
     
     public static func displayChatNavigationMenu(context: AccountContext, chatNavigationStack: [ChatNavigationStackItem], nextFolderId: Int32?, parentController: ViewController, backButtonView: UIView, navigationController: NavigationController, gesture: ContextGesture) {
+        print("PRINT4 displayChatNavigationMenu")
         let peerMap = EngineDataMap(
             Set(chatNavigationStack.map(\.peerId)).map(TelegramEngine.EngineData.Item.Peer.Peer.init)
         )

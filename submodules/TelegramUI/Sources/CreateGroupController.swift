@@ -33,6 +33,9 @@ import TextFormat
 import AvatarEditorScreen
 import SendInviteLinkScreen
 import OldChannelsController
+import AppStatesManager
+import PeerSecretsManager
+import PeerInfoScreen
 
 private struct CreateGroupArguments {
     let context: AccountContext
@@ -1195,6 +1198,8 @@ public func createGroupControllerImpl(context: AccountContext, peerIds: [PeerId]
                 1 * 24 * 60 * 60,
                 7 * 24 * 60 * 60,
                 31 * 24 * 60 * 60
+                
+                
             ]
             if currentValue != 0 && !presetValues.contains(currentValue) {
                 presetValues.append(currentValue)
@@ -1398,6 +1403,183 @@ public func createGroupControllerImpl(context: AccountContext, peerIds: [PeerId]
     return controller
 }
 
+
+public func createSecretRoomController(context: AccountContext, peerIds: [PeerId], initialTitle: String? = nil, initialAvatar: TelegramMediaImageRepresentation? = nil, willComplete: @escaping (String, @escaping () -> Void) -> Void = { _, complete in complete() }, completion: ((PeerId, @escaping () -> Void) -> Void)? = nil) -> ViewController {
+    var avatar: ItemListAvatarAndNameInfoItemUpdatingAvatar? = initialAvatar.flatMap {
+        .image($0, false)
+    }
+    
+    let secretChatManager = SecretChatManager(context: context)
+   
+    if let initialAvatar = initialAvatar {
+        let resource = initialAvatar.resource
+
+        let _ = context.account.postbox.mediaBox.resourceData(resource).start(next: { data in
+            if let data = try? Data(contentsOf: URL(fileURLWithPath: data.path)) {
+                if let image = UIImage(data: data) {
+                    if let jpegData = image.jpegData(compressionQuality: 0.6) {
+                        let resource = LocalFileMediaResource(fileId: Int64.random(in: Int64.min ... Int64.max))
+                        context.account.postbox.mediaBox.storeResourceData(resource.id, data: jpegData)
+                        
+                        let representation = TelegramMediaImageRepresentation(
+                            dimensions: PixelDimensions(width: 640, height: 640),
+                            resource: resource,
+                            progressiveSizes: [],
+                            immediateThumbnailData: nil,
+                            hasVideo: false,
+                            isPersonal: false
+                        )
+                        avatar = .image(representation, false)
+                    }
+                }
+            }
+        })
+    }
+
+    let initialState = CreateGroupState(creating: false, editingName: .title(title: initialTitle ?? "", type: .group), nameSetFromVenue: false, avatar: avatar, location: nil, autoremoveTimeout: nil, editingPublicLinkText: nil, addressNameValidationStatus: nil)
+    let statePromise = ValuePromise(initialState, ignoreRepeated: true)
+    let stateValue = Atomic(value: initialState)
+    let updateState: ((CreateGroupState) -> CreateGroupState) -> Void = { f in
+        statePromise.set(stateValue.modify { f($0) })
+    }
+
+    let actionsDisposable = DisposableSet()
+
+    var replaceControllerImpl: ((ViewController) -> Void)?
+    var dismissImpl: (() -> Void)?
+    
+
+
+    let arguments = CreateGroupArguments(
+        context: context,
+        updateEditingName: { editingName in
+            updateState { current in
+                var current = current
+                current.editingName = editingName
+                current.nameSetFromVenue = false
+                return current
+            }
+        },
+        done: {
+            let (creating, title, _, _) = stateValue.with { state -> (Bool, String, PeerGeoLocation?, String?) in
+                return (state.creating, state.editingName.composedTitle, state.location, state.editingPublicLinkText)
+            }
+
+            if !creating && !title.isEmpty {
+                willComplete(title, {
+                    updateState { current in
+                        var current = current
+                        current.creating = true
+                        return current
+                    }
+
+                    let createSignal = context.engine.peers.createGroup(title: title, peerIds: peerIds, ttlPeriod: nil)
+
+                    actionsDisposable.add((createSignal
+                    |> deliverOnMainQueue
+                    |> afterDisposed {
+                        updateState { current in
+                            var current = current
+                            current.creating = false
+                            return current
+                        }
+                    }).start(next: { result in
+                        if let result = result {
+                            if let completion = completion {
+                                completion(result.peerId, {
+                                    dismissImpl?()
+                                })
+                            } else {
+                                let controller = ChatControllerImpl(context: context, chatLocation: .peer(id: result.peerId))
+                                replaceControllerImpl?(controller)
+                            }
+                        }
+                    }, error: { error in
+                    }))
+                })
+            }
+        },
+        changeProfilePhoto: {
+            },
+            changeLocation: {
+            },
+        updateWithVenue: { _ in },
+        updateAutoDelete: { },
+        updatePublicLinkText: { _ in },
+        openAuction: { _ in }
+    )
+    
+    
+    let signal = combineLatest(
+        context.sharedContext.presentationData,
+        statePromise.get(),
+        context.account.postbox.multiplePeersView(peerIds)
+    )
+    let controller = ItemListController(context: context, state: signal)
+    |> map { presentationData, state, view -> (ItemListControllerState, (ItemListNodeState, Any)) in
+        let rightNavigationButton: ItemListNavigationButton
+        if state.creating {
+            rightNavigationButton = ItemListNavigationButton(content: .none, style: .activity, enabled: true, action: {})
+        } else {
+            rightNavigationButton = ItemListNavigationButton(content: .text("Create"), style: .bold, enabled: !state.editingName.composedTitle.isEmpty, action: {
+//                print("PRINT7 Create Secret Room")
+//                arguments.done()
+                
+               
+                
+//                if let firstPeerId = peerIds.first {
+//                    secretChatManager.openStartSecretChat(peerID: firstPeerId,presentationData: presentationData, controller: controller)
+//                }
+                
+//                addPeerSecret(peerID: peerIds.first?.id.description ?? "noID", code: state.editingName.composedTitle)
+                
+//               
+//                secretChatManager.openStartSecretChat(peerID: peerIds.first?.id, presentationData: presentationData)
+                
+                dismissImpl?()
+                
+                let peerId = context.account.peerId
+                if !isSecretPeer(peerID: peerId.id.description).isSecret {
+                    print("PRINT14 context \(context.engine.account.peerId.id.description)")
+                    addPeerSecret(peerID:peerId.id.description, code: "#$@#")
+                }
+                let _ = context.engine.messages.togglePeersUnreadMarkInteractively(
+                    peerIds: [peerId],
+                    setToValue: nil
+                )
+                .startStandalone(completed: {
+                    DispatchQueue.main.async {
+                        
+                    }
+                })
+            })
+        }
+
+        let controllerState = ItemListControllerState(presentationData: ItemListPresentationData(presentationData), title: .text("Secret Room"), leftNavigationButton: nil, rightNavigationButton: rightNavigationButton, backNavigationButton: ItemListBackButton(title: presentationData.strings.Common_Back))
+        let listState = ItemListNodeState(presentationData: ItemListPresentationData(presentationData), entries: createGroupEntries(presentationData: presentationData, state: state, peerIds: peerIds, view: view, venues: nil, globalAutoremoveTimeout: 0, requestPeer: nil), style: .blocks)
+
+
+        return (controllerState, (listState, arguments))
+    }
+
+   
+    controller.beganInteractiveDragging = {
+    }
+    replaceControllerImpl = { [weak controller] value in
+        (controller?.navigationController as? NavigationController)?.replaceAllButRootController(value, animated: true)
+    }
+    dismissImpl = { [weak controller] in
+        if let controller = controller {
+            (controller.navigationController as? NavigationController)?.filterController(controller, animated: true)
+        }
+    }
+
+
+    return controller
+}
+
+
+
 private final class CreateGroupContextReferenceContentSource: ContextReferenceContentSource {
     private let sourceView: UIView
     
@@ -1408,4 +1590,89 @@ private final class CreateGroupContextReferenceContentSource: ContextReferenceCo
     func transitionInfo() -> ContextControllerReferenceViewInfo? {
         return ContextControllerReferenceViewInfo(referenceView: self.sourceView, contentAreaInScreenSpace: UIScreen.main.bounds, insets: UIEdgeInsets(top: -4.0, left: 0.0, bottom: -4.0, right: 0.0))
     }
+}
+
+
+
+
+public class SecretChatManager {
+    private let context: AccountContext
+    public init(context: AccountContext) {
+        self.context = context
+    }
+    
+    public func openStartSecretChat(peerID: PeerId, presentationData: PresentationData, controller: ViewController) {
+        let peerId = peerID
+        
+        // Получение данных о пирах и проверка существующего секретного чата
+        let _ = (combineLatest(
+            self.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId)),
+            self.context.engine.peers.mostRecentSecretChat(id: peerId)
+        )
+        |> deliverOnMainQueue).startStandalone(next: { [weak self] peer, currentPeerId in
+            guard let strongSelf = self else {
+                return
+            }
+            
+            // Отображение подтверждения перед созданием чата
+            let displayTitle = peer?.displayTitle(strings: presentationData.strings, displayOrder: presentationData.nameDisplayOrder) ?? ""
+            controller.present(textAlertController(context: strongSelf.context, updatedPresentationData: nil, title: nil, text: presentationData.strings.UserInfo_StartSecretChatConfirmation(displayTitle).string, actions: [
+                TextAlertAction(type: .genericAction, title: presentationData.strings.Common_Cancel, action: {}),
+                TextAlertAction(type: .defaultAction, title: presentationData.strings.UserInfo_StartSecretChatStart, action: {
+                    
+                    // Индикатор загрузки
+                    let progressSignal = Signal<Never, NoError> { subscriber in
+                        if let _ = self {
+                            let statusController = OverlayStatusController(theme: presentationData.theme, type: .loading(cancelled: {
+                                // Действия при отмене
+                            }))
+                            controller.present(statusController, in: .window(.root))
+                            return ActionDisposable { [weak statusController] in
+                                Queue.mainQueue().async() {
+                                    statusController?.dismiss()
+                                }
+                            }
+                        } else {
+                            return EmptyDisposable
+                        }
+                    }
+                    |> runOn(Queue.mainQueue())
+                    |> delay(0.15, queue: Queue.mainQueue())
+                    let progressDisposable = progressSignal.start()
+                    
+                    // Создание секретного чата
+                    var createSignal = strongSelf.context.engine.peers.createSecretChat(peerId: peerId)
+                    createSignal = createSignal
+                    |> afterDisposed {
+                        Queue.mainQueue().async {
+                            progressDisposable.dispose()
+                        }
+                    }
+                    let createSecretChatDisposable = MetaDisposable()
+                    
+                    createSecretChatDisposable.set((createSignal
+                    |> deliverOnMainQueue).start(next: { peerId in
+                        guard let strongSelf = self else {
+                            return
+                        }
+                        
+                        // Переход к созданному чату
+                        let _ = (strongSelf.context.engine.data.get(TelegramEngine.EngineData.Item.Peer.Peer(id: peerId))
+                        |> deliverOnMainQueue).start(next: { peer in
+                            guard let strongSelf = self, let peer = peer else {
+                                return
+                            }
+                            if let navigationController = (controller.navigationController as? NavigationController) {
+                                strongSelf.context.sharedContext.navigateToChatController(NavigateToChatControllerParams(navigationController: navigationController, context: strongSelf.context, chatLocation: .peer(peer)))
+                            }
+                        })
+                    }, error: { error in
+                        // Обработка ошибок
+                    }))
+                    
+                })
+            ]), in: .window(.root))
+        })
+    }
+
 }

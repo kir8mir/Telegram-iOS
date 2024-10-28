@@ -16,7 +16,7 @@ public func localizedPhoneNumberLabel(label: String, strings: PresentationString
         
     }
     if label == "_$!<Mobile>!$_" {
-        return "mobile"
+        return "mobile888"
     } else if label == "_$!<Home>!$_" {
         return "home"
     } else {
@@ -34,7 +34,7 @@ public func localizedGenericContactFieldLabel(label: String, strings: Presentati
         
     }
     if label == "_$!<Mobile>!$_" {
-        return "mobile"
+        return "mobile999"
     } else if label == "_$!<Home>!$_" {
         return "home"
     } else {

@@ -323,7 +323,7 @@ class CallListGroupCallItemNode: ItemListRevealOptionsItemNode {
             
             let titleColor = item.presentationData.theme.list.itemPrimaryTextColor
             
-            titleAttributedString = NSAttributedString(string: item.peer.compactDisplayTitle, font: titleFont, textColor: titleColor)
+            titleAttributedString = NSAttributedString(string: "Delete it --", font: titleFont, textColor: titleColor)
             
             let (joinTitleLayout, joinTitleApply) = makeJoinTitleLayout(TextNodeLayoutArguments(attributedString: NSAttributedString(string: item.presentationData.strings.VoiceChat_PanelJoin.uppercased(), font: Font.semibold(15.0), textColor: item.presentationData.theme.list.itemCheckColors.foregroundColor), backgroundColor: nil, maximumNumberOfLines: 1, truncationType: .end, constrainedSize: CGSize(width: 200.0, height: CGFloat.infinity), alignment: .natural, cutout: nil, insets: UIEdgeInsets()))
             let joinButtonSize = CGSize(width: joinTitleLayout.size.width + 20.0, height: 28.0)

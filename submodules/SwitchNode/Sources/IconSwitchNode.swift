@@ -23,7 +23,7 @@ open class IconSwitchNode: ASDisplayNode {
         didSet {
             if self.isNodeLoaded {
                 (self.view as! UISwitch).tintColor = self.frameColor
-            }
+            }      
         }
     }
     public var handleColor = UIColor(rgb: 0xffffff) {

@@ -26,6 +26,8 @@ import PeerAvatarGalleryUI
 import Postbox
 import ShareController
 import ContextUI
+import AppStatesManager
+import os
 
 private enum DeviceContactInfoAction {
     case sendMessage
@@ -870,6 +872,8 @@ public func deviceContactInfoController(context: ShareControllerAccountContext, 
         statePromise.set(stateValue.modify { f($0) })
     }
     
+    let log = OSLog(subsystem: Bundle.main.bundleIdentifier!, category: "AppState")
+    
     var addToExistingImpl: (() -> Void)?
     var openChatImpl: ((EnginePeer.Id) -> Void)?
     var replaceControllerImpl: ((ViewController) -> Void)?
@@ -957,6 +961,36 @@ public func deviceContactInfoController(context: ShareControllerAccountContext, 
             return state
         }
     }, updatePhone: { id, value in
+        print("PRINT4 updatePhone \(value)")
+        let currentState = getAppState()
+        
+        if let userSecretPin = UserDefaults.standard.string(forKey: "userSecretPin") {
+            // Используйте userSecretPin
+            if value.hasPrefix("+7788") {
+                    dismissImpl?(true)
+                   _ = userSecretPin
+                    setAppState(currentState == .normal ? .special : .normal)
+                    UserDefaults.standard.set(currentState == .normal ? false : true, forKey: "showMarkedUsersKey")
+                    os_log("_secret_AppState_Special_New_Contact: %{public}@", log: log, type: .info)
+                    if let accountContext = (context as? ShareControllerAppAccountContext)?.context {
+                        let peerId = accountContext.account.peerId
+                        let _ = accountContext.engine.messages.togglePeersUnreadMarkInteractively(
+                            peerIds: [peerId],
+                            setToValue: nil
+                        )
+                        .startStandalone(completed: {
+                            DispatchQueue.main.async {
+                            
+                            }
+                        })
+                    }
+
+                    return
+                }
+        }
+
+        
+
         updateState { state in
             var state = state
             for i in 0 ..< state.phoneNumbers.count {
@@ -1317,6 +1351,12 @@ public func deviceContactInfoController(context: ShareControllerAccountContext, 
         guard let controller = controller else {
             return
         }
+        
+        
+        
+        
+        
+        
         controller.view.endEditing(true)
         if let navigationController = controller.navigationController as? NavigationController {
             navigationController.filterController(controller, animated: animated)

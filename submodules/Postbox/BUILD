@@ -19,6 +19,7 @@ swift_library(
         "//submodules/Utils/RangeSet:RangeSet",
         "//submodules/CryptoUtils",
         "//submodules/Utils/DarwinDirStat",
+        "//submodules/Utils/CustomDataCryptor",
     ],
     visibility = [
         "//visibility:public",

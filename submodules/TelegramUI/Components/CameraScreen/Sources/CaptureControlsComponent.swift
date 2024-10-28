@@ -638,6 +638,7 @@ final class CaptureControlsComponent: Component {
         }
         
         @objc private func handlePress(_ gestureRecognizer: UILongPressGestureRecognizer) {
+            print("PRINT7 handlePress")
             guard let component = self.component else {
                 return
             }

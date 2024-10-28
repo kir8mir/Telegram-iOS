@@ -1382,6 +1382,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     if let snapshotView = view.snapshotView(afterScreenUpdates: false) {
                         snapshotView.frame = view.convert(view.bounds, to: nil)
                         self.view.addSubview(snapshotView)
+                        print("PRINT5 Оверлей отображен, начинаем анимацию исчезновения 1")
                         snapshotView.layer.animateAlpha(from: 1.0, to: 0.0, duration: 0.2, removeOnCompletion: false, completion: { [weak snapshotView] _ in
                             snapshotView?.removeFromSuperview()
                         })
@@ -1655,6 +1656,7 @@ final class ContextControllerExtractedPresentationNode: ASDisplayNode, ContextCo
                     if let snapshotView = view.snapshotView(afterScreenUpdates: false) {
                         snapshotView.frame = view.convert(view.bounds, to: nil)
                         self.view.addSubview(snapshotView)
+                        print("PRINT5 Оверлей отображен, начинаем анимацию исчезновения 2")
                         snapshotView.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2, removeOnCompletion: false, completion: { [weak snapshotView] _ in
                             snapshotView?.removeFromSuperview()
                         })

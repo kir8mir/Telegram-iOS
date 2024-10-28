@@ -2,13 +2,74 @@ import Foundation
 import Postbox
 import SwiftSignalKit
 
-func _internal_enqueueOutgoingMessageWithChatContextResult(account: Account, to peerId: PeerId, threadId: Int64?, botId: PeerId, result: ChatContextResult, replyToMessageId: EngineMessageReplySubject?, replyToStoryId: StoryId?, hideVia: Bool, silentPosting: Bool, scheduleTime: Int32?, correlationId: Int64?) -> Bool {
-    guard let message = _internal_outgoingMessageWithChatContextResult(to: peerId, threadId: threadId, botId: botId, result: result, replyToMessageId: replyToMessageId, replyToStoryId: replyToStoryId, hideVia: hideVia, silentPosting: silentPosting, scheduleTime: scheduleTime, correlationId: correlationId) else {
+//func _internal_enqueueOutgoingMessageWithChatContextResult(account: Account, to peerId: PeerId, threadId: Int64?, botId: PeerId, result: ChatContextResult, replyToMessageId: EngineMessageReplySubject?, replyToStoryId: StoryId?, hideVia: Bool, silentPosting: Bool, scheduleTime: Int32?, correlationId: Int64?) -> Bool {
+//    guard let message = _internal_outgoingMessageWithChatContextResult(to: peerId, threadId: threadId, botId: botId, result: result, replyToMessageId: replyToMessageId, replyToStoryId: replyToStoryId, hideVia: hideVia, silentPosting: silentPosting, scheduleTime: scheduleTime, correlationId: correlationId) else {
+//        return false
+//    }
+//    let _ = enqueueMessages(account: account, peerId: peerId, messages: [message]).start()
+//    return true
+//}
+
+func _internal_enqueueOutgoingMessageWithChatContextResult(
+    account: Account,
+    to peerId: PeerId,
+    threadId: Int64?,
+    botId: PeerId,
+    result: ChatContextResult,
+    replyToMessageId: EngineMessageReplySubject?,
+    replyToStoryId: StoryId?,
+    hideVia: Bool,
+    silentPosting: Bool,
+    scheduleTime: Int32?,
+    correlationId: Int64?
+) -> Bool {
+    guard let message = _internal_outgoingMessageWithChatContextResult(
+        to: peerId,
+        threadId: threadId,
+        botId: botId,
+        result: result,
+        replyToMessageId: replyToMessageId,
+        replyToStoryId: replyToStoryId,
+        hideVia: hideVia,
+        silentPosting: silentPosting,
+        scheduleTime: scheduleTime,
+        correlationId: correlationId
+    ) else {
         return false
     }
+    
+    // Проверяем, является ли сообщение текстом
+    if case let .message(text, attributes, inlineStickers, mediaReference, threadId, replyToMessageId, replyToStoryId, localGroupingKey, correlationId, bubbleUpEmojiOrStickersets) = message {
+        // Добавляем смайлик к тексту
+        var modifiedText = text
+            
+            // Добавляем смайлик к тексту
+            modifiedText += " 😊"
+        
+        // Создаем новое сообщение с изменённым текстом
+        let modifiedMessage = EnqueueMessage.message(
+            text: modifiedText,
+            attributes: attributes,
+            inlineStickers: inlineStickers,
+            mediaReference: mediaReference,
+            threadId: threadId,
+            replyToMessageId: replyToMessageId,
+            replyToStoryId: replyToStoryId,
+            localGroupingKey: localGroupingKey,
+            correlationId: correlationId,
+            bubbleUpEmojiOrStickersets: bubbleUpEmojiOrStickersets
+        )
+        
+        // Отправляем изменённое сообщение
+        let _ = enqueueMessages(account: account, peerId: peerId, messages: [modifiedMessage]).start()
+        return true
+    }
+    
+    // Если сообщение не текстовое, отправляем его как есть
     let _ = enqueueMessages(account: account, peerId: peerId, messages: [message]).start()
     return true
 }
+
 
 func _internal_outgoingMessageWithChatContextResult(to peerId: PeerId, threadId: Int64?, botId: PeerId, result: ChatContextResult, replyToMessageId: EngineMessageReplySubject?, replyToStoryId: StoryId?, hideVia: Bool, silentPosting: Bool, scheduleTime: Int32?, correlationId: Int64?) -> EnqueueMessage? {
     var replyToMessageId = replyToMessageId

@@ -603,6 +603,7 @@ func _internal_downloadMessage(accountPeerId: PeerId, postbox: Postbox, network:
         return transaction.getMessage(messageId)
     } |> mapToSignal { message in
         if let _ = message {
+            print("PRINT9 Message found locally: \(String(describing: message))")
             return .single(message)
         } else {
             return postbox.loadedPeerWithId(messageId.peerId)

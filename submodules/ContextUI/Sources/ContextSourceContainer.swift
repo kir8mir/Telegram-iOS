@@ -47,6 +47,7 @@ final class ContextSourceContainer: ASDisplayNode {
             closeActionTitle: String? = nil,
             closeAction: (() -> Void)? = nil
         ) {
+            print("PRINT5 Creating Source with ID: \(id) and title: \(title)")
             self.controller = controller
             self.id = id
             self.title = title
@@ -62,6 +63,7 @@ final class ContextSourceContainer: ASDisplayNode {
             
             switch source {
             case let .location(source):
+                print("PRINT5 Source type: location")
                 self.contentReady.set(.single(true))
                 
                 let presentationNode = ContextControllerExtractedPresentationNode(
@@ -72,6 +74,7 @@ final class ContextSourceContainer: ASDisplayNode {
                         return self.controller
                     },
                     requestUpdate: { [weak self] transition in
+                        print("PRINT5 Requesting update with transition: \(transition)")
                         guard let self else {
                             return
                         }
@@ -102,6 +105,7 @@ final class ContextSourceContainer: ASDisplayNode {
                 )
                 self._presentationNode = presentationNode
             case let .reference(source):
+                print("PRINT5 Source type: reference")
                 self.contentReady.set(.single(true))
                 
                 let presentationNode = ContextControllerExtractedPresentationNode(
@@ -112,6 +116,7 @@ final class ContextSourceContainer: ASDisplayNode {
                         return self.controller
                     },
                     requestUpdate: { [weak self] transition in
+                        print("PRINT5 Requesting update with transition: \(transition)")
                         guard let self else {
                             return
                         }
@@ -142,6 +147,7 @@ final class ContextSourceContainer: ASDisplayNode {
                 )
                 self._presentationNode = presentationNode
             case let .extracted(source):
+                print("PRINT5 Source type: extracted")
                 self.contentReady.set(.single(true))
                 
                 let presentationNode = ContextControllerExtractedPresentationNode(
@@ -152,6 +158,7 @@ final class ContextSourceContainer: ASDisplayNode {
                         return self.controller
                     },
                     requestUpdate: { [weak self] transition in
+                        print("PRINT5 Requesting update with transition: \(transition)")
                         guard let self else {
                             return
                         }
@@ -185,6 +192,7 @@ final class ContextSourceContainer: ASDisplayNode {
                 )
                 self._presentationNode = presentationNode
             case let .controller(source):
+                print("PRINT5 Source type: controller")
                 self.contentReady.set(source.controller.ready.get())
                 
                 let presentationNode = ContextControllerExtractedPresentationNode(
@@ -195,6 +203,7 @@ final class ContextSourceContainer: ASDisplayNode {
                         return self.controller
                     },
                     requestUpdate: { [weak self] transition in
+                        print("PRINT5 Requesting update with transition: \(transition)")
                         guard let self else {
                             return
                         }
@@ -230,7 +239,7 @@ final class ContextSourceContainer: ASDisplayNode {
                 guard let self else {
                     return
                 }
-                
+                print("PRINT5 Received items: \(items)")
                 self.setItems(items: items, animated: nil)
                 self.actionsReady.set(.single(true))
             }))
@@ -241,6 +250,7 @@ final class ContextSourceContainer: ASDisplayNode {
         }
         
         func animateIn() {
+            print("PRINT5 Animating in the context menu. 1")
             self.currentPresentationStateTransition = .animateIn
             self.update(transition: .animated(duration: 0.5, curve: .spring))
         }
@@ -286,6 +296,7 @@ final class ContextSourceContainer: ASDisplayNode {
         }
         
         func setItems(items: ContextController.Items, animated: Bool?) {
+            print("PRINT5 Setting items: \(items)")
             self.presentationNode.replaceItems(items: items, animated: animated)
         }
         
@@ -319,6 +330,7 @@ final class ContextSourceContainer: ASDisplayNode {
             layout: ContainerViewLayout,
             transition: ContainedViewLayoutTransition
         ) {
+            print("PRINT5 Updating layout: \(layout)")
             if self.isAnimatingOut || self.delayLayoutUpdate {
                 return
             }
@@ -465,6 +477,7 @@ final class ContextSourceContainer: ASDisplayNode {
     }
     
     func animateIn() {
+        print("PRINT5 Animating in the context menu. 2 \(String(describing: self.presentationData))")
         self.backgroundNode.layer.animateAlpha(from: 0.0, to: 1.0, duration: 0.2)
         
         if let activeSource = self.activeSource {
@@ -730,6 +743,8 @@ final class ContextSourceContainer: ASDisplayNode {
             )
         }
     }
+    
+    
     
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
         if let tabSelectorView = self.tabSelector?.view {

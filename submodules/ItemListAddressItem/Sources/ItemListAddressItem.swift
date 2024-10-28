@@ -396,6 +396,7 @@ public class ItemListAddressItemNode: ListViewItemNode {
     }
     
     override public func longTapped() {
+        print("PRINT5 longTapped 9")
         guard let item = self.item else {
             return
         }

@@ -478,6 +478,7 @@ open class ListView: ASDisplayNode, ASScrollViewDelegate, ASGestureRecognizerDel
         self.isAccessibilityContainer = true
         
         self.setViewBlock({ () -> UIView in
+            
             return ListViewBackingView()
         })
         
@@ -514,6 +515,7 @@ open class ListView: ASDisplayNode, ASScrollViewDelegate, ASGestureRecognizerDel
                             let itemNodeBounds = itemNode.bounds
                             if itemNode.isReorderable(at: point.offsetBy(dx: -itemNodeFrame.minX + itemNodeBounds.minX, dy: -itemNodeFrame.minY + itemNodeBounds.minY)) {
                                 let requiresLongPress = !strongSelf.reorderedItemHasShadow
+                                print("PRINT5 requiresLongPress")
                                 return (true, requiresLongPress, itemNode)
                             }
                             break

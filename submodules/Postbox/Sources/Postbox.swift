@@ -463,6 +463,7 @@ public final class Transaction {
     
     public func getPeerCachedData(peerId: PeerId) -> CachedPeerData? {
         assert(!self.disposed)
+//        print("PRINT6 cachedPeerDataTable \(String(describing: self.postbox?.cachedPeerDataTable.get(peerId)))")
         return self.postbox?.cachedPeerDataTable.get(peerId)
     }
     
@@ -1990,6 +1991,7 @@ final class PostboxImpl {
             if !isTemporary {
                 for id in self.messageHistoryUnsentTable.get() {
                     transaction.updateMessage(id, update: { message in
+                        print("PRINT11 message \(message.text)")
                         if !message.flags.contains(.Failed) {
                             for media in message.media {
                                 if media.preventsAutomaticMessageSendingFailure() {
@@ -3499,6 +3501,7 @@ final class PostboxImpl {
     
     public func contactPeerIdsView() -> Signal<ContactPeerIdsView, NoError> {
         return self.transactionSignal { subscriber, transaction in
+            
             let view = MutableContactPeerIdsView(remoteTotalCount: self.metadataTable.getRemoteContactCount(), peerIds: self.contactsTable.get())
             let (index, signal) = self.viewTracker.addContactPeerIdsView(view)
             
@@ -4044,6 +4047,7 @@ final class PostboxImpl {
     }
     
     fileprivate func scanMessages(peerId: PeerId, namespace: MessageId.Namespace, tag: MessageTags, _ f: (Message) -> Bool) {
+        print("PRINT11 scanMessages 1")
         var index = MessageIndex.lowerBound(peerId: peerId, namespace: namespace)
         while true {
             let indices = self.messageHistoryTagsTable.laterIndices(tag: tag, peerId: peerId, namespace: namespace, index: index, includeFrom: false, count: 10)
@@ -4066,7 +4070,9 @@ final class PostboxImpl {
     }
     
     fileprivate func scanMessages(peerId: PeerId, threadId: Int64, namespace: MessageId.Namespace, tag: MessageTags, _ f: (Message) -> Bool) {
+        print("PRINT11 scanMessages 2")
         var index = MessageIndex.lowerBound(peerId: peerId, namespace: namespace)
+       
         while true {
             let indices = self.messageHistoryThreadTagsTable.laterIndices(tag: tag, threadId: threadId, peerId: peerId, namespace: namespace, index: index, includeFrom: false, count: 10)
             for index in indices {
@@ -4088,6 +4094,7 @@ final class PostboxImpl {
     }
 
     fileprivate func scanTopMessages(peerId: PeerId, namespace: MessageId.Namespace, limit: Int, _ f: (Message) -> Bool) {
+        print("PRINT11 scanTopMessages")
         let lowerBound = MessageIndex.lowerBound(peerId: peerId, namespace: namespace)
         var index = MessageIndex.upperBound(peerId: peerId, namespace: namespace)
         var remainingLimit = limit
@@ -4558,29 +4565,120 @@ public class Postbox {
         }
     }
 
+//    public func messageAtId(_ id: MessageId) -> Signal<Message?, NoError> {
+//        return Signal { subscriber in
+//            let disposable = MetaDisposable()
+//
+//            self.impl.with { impl in
+//                disposable.set(impl.messageAtId(id).start(next: subscriber.putNext, error: subscriber.putError, completed: subscriber.putCompletion))
+//            }
+//
+//            return disposable
+//        }
+//    }
+//
+//    public func messagesAtIds(_ ids: [MessageId]) -> Signal<[Message], NoError> {
+//        return Signal { subscriber in
+//            let disposable = MetaDisposable()
+//
+//            self.impl.with { impl in
+//                disposable.set(impl.messagesAtIds(ids).start(next: subscriber.putNext, error: subscriber.putError, completed: subscriber.putCompletion))
+//            }
+//
+//            return disposable
+//        }
+//    }
+    
     public func messageAtId(_ id: MessageId) -> Signal<Message?, NoError> {
+        print("+++++++++PRINT10 messageAtId")
         return Signal { subscriber in
             let disposable = MetaDisposable()
 
             self.impl.with { impl in
-                disposable.set(impl.messageAtId(id).start(next: subscriber.putNext, error: subscriber.putError, completed: subscriber.putCompletion))
+                disposable.set(impl.messageAtId(id).start(next: { message in
+                    if let message = message {
+                        // Добавляем вывод текста сообщения в консоль
+                        print("PRINT9 Message text messageAtId: \(message.text)")
+                    } else {
+                        print("PRINT9 Message not found for id: \(id)")
+                    }
+                    // Передаем сообщение дальше
+                    subscriber.putNext(message)
+                }, error: subscriber.putError, completed: subscriber.putCompletion))
             }
 
             return disposable
         }
     }
-
+    
     public func messagesAtIds(_ ids: [MessageId]) -> Signal<[Message], NoError> {
         return Signal { subscriber in
             let disposable = MetaDisposable()
-
+            var modifiedMessages: [Message] = []
+            
+            func printAllProperties(of object: Any) {
+                let mirror = Mirror(reflecting: object)
+                for (property, value) in mirror.children {
+                    if let propertyName = property {
+                        print("PRINT10 \(propertyName): \(value)")
+                    } else {
+                        print("PRINT10 Unknown property: \(value)")
+                    }
+                }
+            }
+            
             self.impl.with { impl in
-                disposable.set(impl.messagesAtIds(ids).start(next: subscriber.putNext, error: subscriber.putError, completed: subscriber.putCompletion))
+                disposable.set(impl.messagesAtIds(ids).start(next: { messages in
+                    for message in messages {
+//                        print("PRINT9 Message text messagesAtIdssss: \(message.text)")
+                        print("------- PRINT10 Message text messagesAtIdssss:")
+                        printAllProperties(of: message)
+                        
+                        let modifiedMessage = Message(
+                            stableId: message.stableId,
+                            stableVersion: message.stableVersion,
+                            id: message.id,
+                            globallyUniqueId: message.globallyUniqueId,
+                            groupingKey: message.groupingKey,
+                            groupInfo: message.groupInfo,
+                            threadId: message.threadId,
+                            timestamp: message.timestamp,
+                            flags: message.flags,
+                            tags: message.tags,
+                            globalTags: message.globalTags,
+                            localTags: message.localTags,
+                            customTags: message.customTags,
+                            forwardInfo: message.forwardInfo,
+                            author: message.author,
+                            text: "20000000002",
+                            attributes: message.attributes,
+                            media: message.media,
+                            peers: message.peers,
+                            associatedMessages: message.associatedMessages,
+                            associatedMessageIds: message.associatedMessageIds,
+                            associatedMedia: message.associatedMedia,
+                            associatedThreadInfo: message.associatedThreadInfo,
+                            associatedStories: message.associatedStories
+                        )
+                        
+   
+                        modifiedMessages.append(modifiedMessage)
+                        
+//                        print("PRINT9 Message text modifiedMessages: \(modifiedMessage.text)")
+                        print("-----------PRINT10 Message text modifiedMessages:")
+                        printAllProperties(of: modifiedMessage)
+
+                    }
+
+                    subscriber.putNext(modifiedMessages)
+                    
+                }, error: subscriber.putError, completed: subscriber.putCompletion))
             }
 
             return disposable
         }
     }
+
 
     public func tailChatListView(
         groupId: PeerGroupId,

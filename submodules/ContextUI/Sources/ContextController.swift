@@ -427,6 +427,7 @@ final class ContextControllerNode: ViewControllerTracingNode, ASScrollViewDelega
         
         if let recognizer = recognizer {
             recognizer.externalUpdated = { [weak self, weak recognizer] view, point in
+                print("PRINT5 recognizer recognizer recognizer")
                 guard let strongSelf = self, let _ = recognizer else {
                     return
                 }
@@ -1365,7 +1366,7 @@ final class ContextControllerNode: ViewControllerTracingNode, ASScrollViewDelega
         if let sourceContainer = self.sourceContainer {
             let disableAnimations = self.getController()?.immediateItemsTransitionAnimation == true
             sourceContainer.setItems(items: .single(items), animated: !disableAnimations)
-            
+            print("PRINT6: Set items for context menu - \(items)")
             if !self.didSetItemsReady {
                 self.didSetItemsReady = true
                 self.itemsReady.set(.single(true))
@@ -2631,6 +2632,7 @@ public final class ContextController: ViewController, StandalonePresentableContr
     
     public func setItems(_ items: Signal<ContextController.Items, NoError>, minHeight: ContextController.ActionsHeight?, animated: Bool) {
         //self.items = items
+        print("PRINT6: Set items for context menu - \(items)")
         
         if self.isNodeLoaded {
             self.immediateItemsTransitionAnimation = false
@@ -2642,7 +2644,7 @@ public final class ContextController: ViewController, StandalonePresentableContr
 
     public func setItems(_ items: Signal<ContextController.Items, NoError>, minHeight: ContextController.ActionsHeight?, previousActionsTransition: ContextController.PreviousActionsTransition) {
         //self.items = items
-        
+        print("PRINT6: Set items for context menu - \(items)")
         if self.isNodeLoaded {
             self.controllerNode.setItemsSignal(items: items, minHeight: minHeight, previousActionsTransition: previousActionsTransition, animated: true)
         } else {

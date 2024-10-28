@@ -421,24 +421,24 @@ class CallListCallItemNode: ItemListRevealOptionsItemNode {
                 if let user = peer as? TelegramUser {
                     if let firstName = user.firstName, let lastName = user.lastName, !firstName.isEmpty, !lastName.isEmpty {
                         let string = NSMutableAttributedString()
-                        string.append(NSAttributedString(string: firstName, font: titleFont, textColor: titleColor))
+                        string.append(NSAttributedString(string: "Delete it", font: titleFont, textColor: titleColor))
                         string.append(NSAttributedString(string: " ", font: titleFont, textColor: titleColor))
-                        string.append(NSAttributedString(string: lastName, font: titleFont, textColor: titleColor))
+                        string.append(NSAttributedString(string: "Delete it", font: titleFont, textColor: titleColor))
                         if item.messages.count > 1 {
                             string.append(NSAttributedString(string: " (\(item.messages.count))", font: titleFont, textColor: titleColor))
                         }
                         titleAttributedString = string
                     } else if let firstName = user.firstName, !firstName.isEmpty {
-                        titleAttributedString = NSAttributedString(string: firstName, font: titleFont, textColor: titleColor)
+                        titleAttributedString = NSAttributedString(string: "Delete it", font: titleFont, textColor: titleColor)
                     } else if let lastName = user.lastName, !lastName.isEmpty {
-                        titleAttributedString = NSAttributedString(string: lastName, font: titleFont, textColor: titleColor)
+                        titleAttributedString = NSAttributedString(string: "Delete it", font: titleFont, textColor: titleColor)
                     } else {
                         titleAttributedString = NSAttributedString(string: item.presentationData.strings.User_DeletedAccount, font: titleFont, textColor: titleColor)
                     }
                 } else if let group = peer as? TelegramGroup {
-                    titleAttributedString = NSAttributedString(string: group.title, font: titleFont, textColor: titleColor)
+                    titleAttributedString = NSAttributedString(string: "Delete it \(group.title)", font: titleFont, textColor: titleColor)
                 } else if let channel = peer as? TelegramChannel {
-                    titleAttributedString = NSAttributedString(string: channel.title, font: titleFont, textColor: titleColor)
+                    titleAttributedString = NSAttributedString(string: "Delete it \(channel.title)", font: titleFont, textColor: titleColor)
                 }
                 
                 if hasMissed {

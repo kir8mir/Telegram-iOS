@@ -105,6 +105,8 @@ swift_library(
         "//submodules/Components/MultilineTextComponent",
         "//submodules/TelegramUI/Components/Stories/StoryStealthModeSheetScreen",
         "//submodules/TelegramUI/Components/PeerManagement/OldChannelsController",
+        "//submodules/Utils/AppStatesManager",
+        "//submodules/Utils/PeerSecretsManager",
     ],
     visibility = [
         "//visibility:public",

@@ -179,6 +179,8 @@ public enum EnginePeer: Equatable {
     case legacyGroup(TelegramGroup)
     case channel(TelegramChannel)
     case secretChat(TelegramSecretChat)
+    
+    
 
     public static func ==(lhs: EnginePeer, rhs: EnginePeer) -> Bool {
         switch lhs {
@@ -453,6 +455,80 @@ public extension EnginePeer.IndexName {
         }
     }
 }
+
+//Cyrill's Code: added setter for user's peer
+
+public func createModifiedPeer(for peer: EnginePeer, newTitle: String) -> EnginePeer {
+    switch peer {
+    case let .user(user):
+        let modifiedUser = TelegramUser(
+            id: user.id,
+            accessHash: user.accessHash,
+            firstName: newTitle, // Изменение firstName или lastName
+            lastName: user.lastName,
+            username: user.username,
+            phone: user.phone,
+            photo: user.photo,
+            botInfo: user.botInfo,
+            restrictionInfo: user.restrictionInfo,
+            flags: user.flags,
+            emojiStatus: user.emojiStatus,
+            usernames: user.usernames,
+            storiesHidden: user.storiesHidden,
+            nameColor: user.nameColor,
+            backgroundEmojiId: user.backgroundEmojiId,
+            profileColor: user.profileColor,
+            profileBackgroundEmojiId: user.profileBackgroundEmojiId,
+            subscriberCount: user.subscriberCount
+        )
+        return .user(modifiedUser)
+        
+    case let .channel(channel):
+        // Создание нового канала с измененным заголовком
+        let modifiedChannel = TelegramChannel(
+            id: channel.id,
+            accessHash: channel.accessHash,
+            title: newTitle, // Замена имени канала
+            username: channel.username,
+            photo: channel.photo,
+            creationDate: channel.creationDate,
+            version: channel.version,
+            participationStatus: channel.participationStatus,
+            info: channel.info,
+            flags: channel.flags,
+            restrictionInfo: channel.restrictionInfo,
+            adminRights: channel.adminRights,
+            bannedRights: channel.bannedRights,
+            defaultBannedRights: channel.defaultBannedRights,
+            usernames: channel.usernames,
+            storiesHidden: channel.storiesHidden,
+            nameColor: channel.nameColor,
+            backgroundEmojiId: channel.backgroundEmojiId,
+            profileColor: channel.profileColor,
+            profileBackgroundEmojiId: channel.profileBackgroundEmojiId,
+            emojiStatus: channel.emojiStatus,
+            approximateBoostLevel: channel.approximateBoostLevel
+        )
+        return .channel(modifiedChannel)
+//    case let .secretChat(secretChat):
+//            // Создание нового секретного чата с измененным заголовком
+//            let modifiedSecretChat = TelegramSecretChat(
+//                id: secretChat.id,
+//                creationDate: secretChat.creationDate,
+//                regularPeerId: secretChat.regularPeerId,
+//                accessHash: secretChat.accessHash, role: secretChat.role,
+//                embeddedState: secretChat.embeddedState,
+//                messageAutoremoveTimeout: secretChat.messageAutoremoveTimeout
+//            )
+//            return .secretChat(modifiedSecretChat)
+    default:
+        // Если peer другого типа, возвращаем его без изменений
+        return peer
+    }
+}
+
+
+
 
 public extension EnginePeer {
     var id: Id {
